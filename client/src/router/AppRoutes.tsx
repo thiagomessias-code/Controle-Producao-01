@@ -1,0 +1,148 @@
+import { Route, Switch } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import AppContainer from "@/components/layout/AppContainer";
+import Loading from "@/components/ui/Loading";
+
+// Auth Pages
+import Login from "@/pages/Auth/Login";
+import Preload from "@/pages/Auth/Preload";
+
+// App Pages
+import Home from "@/pages/Home/Home";
+import Profile from "@/pages/Profile/Profile";
+import NotificationsPage from "@/pages/Notifications/NotificationsPage";
+
+// Aviary Pages
+import AviaryList from "@/pages/Aviaries/AviaryList";
+import AviaryDetails from "@/pages/Aviaries/AviaryDetails";
+
+// Groups (Sheds) Pages
+import GroupList from "@/pages/Groups/GroupList";
+import GroupCreate from "@/pages/Groups/GroupCreate";
+import GroupDetails from "@/pages/Groups/GroupDetails";
+
+// Batches (Lots) Pages
+import BatchCreate from "@/pages/Groups/BatchCreate";
+import BatchDetails from "@/pages/Groups/BatchDetails";
+import BatchEdit from "@/pages/Groups/BatchEdit";
+import BatchQRCode from "@/pages/Groups/BatchQRCode";
+import GrowthBoxList from "@/pages/Groups/GrowthBoxList";
+
+// Production Pages
+import RegisterProduction from "@/pages/Production/RegisterProduction";
+import ProductionHistory from "@/pages/Production/ProductionHistory";
+import ProductionDashboard from "@/pages/Production/ProductionDashboard";
+import CageDetails from "@/pages/Production/CageDetails";
+
+// Incubation Pages
+import IncubationList from "@/pages/Incubation/IncubationList";
+import IncubationCreate from "@/pages/Incubation/IncubationCreate";
+import IncubationDetails from "@/pages/Incubation/IncubationDetails";
+
+// Mortality Pages
+import RegisterMortality from "@/pages/Mortality/RegisterMortality";
+import MortalityHistory from "@/pages/Mortality/MortalityHistory";
+
+// Feed Pages
+import FeedUsage from "@/pages/Feed/FeedUsage";
+
+// Sales Pages
+import RegisterSale from "@/pages/Sales/RegisterSale";
+import SalesHistory from "@/pages/Sales/SalesHistory";
+
+// Task Pages
+import TaskAction from "@/pages/Tasks/TaskAction";
+import TaskList from "@/pages/Tasks/TaskList";
+
+// Warehouse Pages
+import WarehouseDashboard from "@/pages/Warehouse/WarehouseDashboard";
+import StockDetails from "@/pages/Warehouse/StockDetails";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Loading fullScreen message="Carregando..." />;
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = "/login";
+    return null;
+  }
+
+  return <AppContainer><Component /></AppContainer>;
+}
+
+export default function AppRoutes() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <Preload />;
+  }
+
+  return (
+    <Switch>
+      {/* Auth Routes */}
+      <Route path="/login" component={Login} />
+      <Route path="/preload" component={Preload} />
+
+      {/* Protected Routes */}
+      <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
+      <Route path="/notifications" component={() => <ProtectedRoute component={NotificationsPage} />} />
+
+      {/* Aviary Routes */}
+      <Route path="/aviaries" component={() => <ProtectedRoute component={AviaryList} />} />
+      <Route path="/aviaries/:id" component={() => <ProtectedRoute component={AviaryDetails} />} />
+
+      {/* Groups (Sheds) Routes - Kept for direct access if needed, but hierarchy starts at /aviaries */}
+      <Route path="/groups" component={() => { window.location.href = "/aviaries"; return null; }} />
+      <Route path="/groups/create" component={() => <ProtectedRoute component={GroupCreate} />} />
+      <Route path="/groups/:id" component={() => <ProtectedRoute component={GroupDetails} />} />
+
+      {/* Batches (Lots) Routes */}
+      <Route path="/batches/create" component={() => <ProtectedRoute component={BatchCreate} />} />
+      <Route path="/batches/growth" component={() => <ProtectedRoute component={GrowthBoxList} />} />
+      <Route path="/batches/:id" component={() => <ProtectedRoute component={BatchDetails} />} />
+      <Route path="/batches/:id/edit" component={() => <ProtectedRoute component={BatchEdit} />} />
+      <Route path="/batches/:id/qrcode" component={() => <ProtectedRoute component={BatchQRCode} />} />
+
+      {/* Legacy/Redirects - Optional: keep /groups/growth pointing to GrowthBoxList if needed, but better to move to /batches */}
+      <Route path="/groups/growth" component={() => <ProtectedRoute component={GrowthBoxList} />} />
+
+
+      {/* Production Routes */}
+      <Route path="/production" component={() => <ProtectedRoute component={ProductionHistory} />} />
+      <Route path="/production/register" component={() => <ProtectedRoute component={RegisterProduction} />} />
+      <Route path="/production-management" component={() => <ProtectedRoute component={ProductionDashboard} />} />
+      <Route path="/production/cages/:id" component={() => <ProtectedRoute component={CageDetails} />} />
+
+      {/* Incubation Routes */}
+      <Route path="/incubation" component={() => <ProtectedRoute component={IncubationList} />} />
+      <Route path="/incubation/create" component={() => <ProtectedRoute component={IncubationCreate} />} />
+      <Route path="/incubation/:id" component={() => <ProtectedRoute component={IncubationDetails} />} />
+
+      {/* Mortality Routes */}
+      <Route path="/mortality" component={() => <ProtectedRoute component={MortalityHistory} />} />
+      <Route path="/mortality/register" component={() => <ProtectedRoute component={RegisterMortality} />} />
+
+      {/* Feed Routes */}
+      <Route path="/feed" component={() => <ProtectedRoute component={FeedUsage} />} />
+
+      {/* Sales Routes */}
+      <Route path="/sales" component={() => <ProtectedRoute component={SalesHistory} />} />
+      <Route path="/sales/register" component={() => <ProtectedRoute component={RegisterSale} />} />
+
+      {/* Task Routes */}
+      <Route path="/tasks/execute" component={() => <ProtectedRoute component={TaskAction} />} />
+      <Route path="/tasks/list" component={() => <ProtectedRoute component={TaskList} />} />
+
+      {/* Warehouse Routes */}
+      <Route path="/warehouse" component={() => <ProtectedRoute component={WarehouseDashboard} />} />
+      <Route path="/warehouse/:type" component={() => <ProtectedRoute component={StockDetails} />} />
+
+      {/* Fallback */}
+      <Route component={() => <ProtectedRoute component={() => <div className="text-center py-12">Página não encontrada</div>} />} />
+    </Switch>
+  );
+}

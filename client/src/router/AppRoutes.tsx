@@ -8,7 +8,7 @@ import Login from "@/pages/Auth/Login";
 import Signup from "@/pages/Auth/Signup";
 import Preload from "@/pages/Auth/Preload";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
-import { ChangePassword } from '@/pages/auth/ChangePassword';
+import { ChangePassword } from '@/pages/Auth/ChangePassword';
 
 // App Pages
 import Home from "@/pages/Home/Home";

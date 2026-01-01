@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabaseClient } from '@/api/supabaseClient';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
 // wouter useLocation is not strictly needed if we force reload, but good to keep clean.
 // Actually, window.location.href is better here to refresh the AppRoutes state.
 

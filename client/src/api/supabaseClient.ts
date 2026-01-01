@@ -5,7 +5,11 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Supabase credentials missing! Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+  throw new Error('Supabase credentials missing! Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file or environment variables.');
+}
+
+if (!supabaseUrl.startsWith('http')) {
+  throw new Error(`Invalid Supabase URL format: "${supabaseUrl}". It must start with http:// or https://`);
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -16,7 +20,7 @@ export class ApiClient {
 
   constructor() {
     this.api = axios.create({
-      baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api'
+      baseURL: '/api'
     });
 
     this.api.interceptors.request.use(config => {

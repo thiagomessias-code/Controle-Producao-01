@@ -2,7 +2,7 @@
 import { supabase } from '@/api/supabaseClient';
 
 // Use same host as the rest of the app, assuming backend runs on 3000
-const API_URL = (import.meta.env.VITE_API_URL || '') + '/api';
+const API_URL = '/api';
 
 export interface Graphics {
     id: string;

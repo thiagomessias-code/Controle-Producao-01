@@ -2,10 +2,14 @@ import axios, { AxiosInstance } from "axios";
 import { createClient } from "@supabase/supabase-js";
 
 // Native Supabase Client for direct DB access (New Features)
-const supabaseUrl = "https://xgfstwwvgiyhvogidtze.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhnZnN0d3d2Z2l5aHZvZ2lkdHplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxODcyNzksImV4cCI6MjA3OTc2MzI3OX0.aVLI2zHIhRUyzDxaeiRTIP50UGtLKfLzR36inDADApE";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Supabase credentials missing! Check your .env file.");
+}
+
+export const supabase = createClient(supabaseUrl || "", supabaseKey || "");
 
 // Legacy/Wrapper Client for Backend API Proxy (Old Features)
 export class ApiClient {

@@ -71,5 +71,12 @@ export default defineConfig({
     host: true,
     allowedHosts: ["localhost", "127.0.0.1"],
     fs: { strict: true, deny: ["**/.*"] },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });

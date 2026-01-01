@@ -6,21 +6,22 @@ import {
   UpdateMortalityRequest,
 } from "@/api/mortality";
 
-export const useMortality = (groupId?: string) => {
+export const useMortality = (entityId?: string, isBatch: boolean = false) => {
   const queryClient = useQueryClient();
 
   const { data: mortalities = [], isLoading, error } = useQuery({
-    queryKey: groupId ? ["mortality", groupId] : ["mortality"],
+    queryKey: entityId ? ["mortality", entityId, isBatch] : ["mortality"],
     queryFn: () =>
-      groupId ? mortalityApi.getByGroupId(groupId) : mortalityApi.getAll(),
-    enabled: !groupId || !!groupId,
+      entityId ? (isBatch ? mortalityApi.getByBatchId(entityId) : mortalityApi.getByGroupId(entityId)) : mortalityApi.getAll(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateMortalityRequest) => mortalityApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["mortality", groupId] : ["mortality"],
+        queryKey: entityId ? ["mortality", entityId, isBatch] : ["mortality"],
       });
     },
   });
@@ -30,7 +31,7 @@ export const useMortality = (groupId?: string) => {
       mortalityApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["mortality", groupId] : ["mortality"],
+        queryKey: entityId ? ["mortality", entityId, isBatch] : ["mortality"],
       });
     },
   });
@@ -39,7 +40,7 @@ export const useMortality = (groupId?: string) => {
     mutationFn: (id: string) => mortalityApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["mortality", groupId] : ["mortality"],
+        queryKey: entityId ? ["mortality", entityId, isBatch] : ["mortality"],
       });
     },
   });
@@ -48,9 +49,9 @@ export const useMortality = (groupId?: string) => {
     mortalities,
     isLoading,
     error,
-    create: createMutation.mutate,
-    update: updateMutation.mutate,
-    delete: deleteMutation.mutate,
+    create: createMutation.mutateAsync,
+    update: updateMutation.mutateAsync,
+    delete: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,

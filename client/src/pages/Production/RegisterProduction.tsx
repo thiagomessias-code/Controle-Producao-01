@@ -8,10 +8,13 @@ import { useProduction } from "@/hooks/useProduction";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useCages } from "@/hooks/useCages";
 import { useBatches } from "@/hooks/useBatches";
-import { FIXED_GROUPS } from "@/constants/groups";
+import { useGroups } from "@/hooks/useGroups";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterProduction() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { groups } = useGroups();
   const { create, isCreating } = useProduction();
   const { addInventory } = useWarehouse();
   const { cages } = useCages();
@@ -22,12 +25,15 @@ export default function RegisterProduction() {
     groupId: "",
     cageId: "",
     date: new Date().toISOString().split("T")[0],
-    eggType: "fertile",
+    eggType: "table" as "fertile" | "table", // Default to table
     quantity: "",
     quality: "A" as "A" | "B" | "C",
+    isInternalConsumption: false,
     notes: "",
   });
   const [error, setError] = useState("");
+
+  // Auto-detect batch when cage is selected
 
   // Auto-detect batch when cage is selected
   const [detectedBatch, setDetectedBatch] = useState<any>(null);
@@ -42,6 +48,16 @@ export default function RegisterProduction() {
       setDetectedBatch(null);
     }
   }, [formData.cageId, batches]);
+
+  // Logic: "se o ovo vem do grupo reprodutora ele sempre sera fertil"
+  useEffect(() => {
+    if (formData.groupId) {
+      const selectedGroup = groups?.find(g => g.id === formData.groupId);
+      if (selectedGroup?.type === 'breeders') {
+        setFormData(prev => ({ ...prev, eggType: 'fertile' }));
+      }
+    }
+  }, [formData.groupId, groups]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -78,48 +94,89 @@ export default function RegisterProduction() {
     try {
       const qty = parseInt(formData.quantity);
 
+      if (qty > (detectedBatch?.quantity || 0)) {
+        setError(`Quantidade não pode ser superior ao número de aves no lote (${detectedBatch?.quantity || 0})`);
+        return;
+      }
+
+      console.log("Registrando produção...");
       // Create production record
       await create({
         groupId: formData.groupId,
         cageId: formData.cageId,
+        batchId: detectedBatch.id, // Traceability update
         date: formData.date,
         eggType: formData.eggType,
         quantity: qty,
         quality: formData.quality,
+        destination: formData.isInternalConsumption ? "Consumo" : "Venda",
         notes: formData.notes,
+        userId: user?.id,
       });
+      console.log("Produção registrada. Adicionando ao estoque...");
 
-      // Add to warehouse
-      await addInventory({
-        type: "egg",
-        subtype: formData.eggType === "fertile" ? "ovo fértil" : "ovo cru",
-        quantity: qty,
-        origin: {
-          groupId: formData.groupId,
-          batchId: detectedBatch.id,
-          date: formData.date
+      // Calculate Validity (Default 30 days for Eggs)
+      const date = new Date(formData.date);
+      date.setDate(date.getDate() + 30);
+      const expirationDate = date.toISOString().split('T')[0];
+
+      // Add to warehouse (if NOT for internal consumption)
+      if (!formData.isInternalConsumption) {
+        try {
+          await addInventory({
+            type: "egg",
+            subtype: formData.eggType === "fertile" ? "ovo fértil" : "ovo cru",
+            quantity: qty,
+            origin: {
+              groupId: formData.groupId,
+              batchId: detectedBatch.id,
+              cageId: formData.cageId,
+              date: formData.date
+            },
+            expirationDate
+          });
+          console.log("Adicionado ao estoque com sucesso.");
+        } catch (stockErr) {
+          console.error("Erro ao adicionar ao estoque:", stockErr);
+          alert("Produção registrada, mas houve um erro ao atualizar o estoque. Verifique os logs.");
         }
-      });
+      } else {
+        console.log("Destino é Consumo Interno. Pulando atualização de estoque.");
+      }
 
       alert("Produção registrada com sucesso!");
       setLocation("/production");
     } catch (err) {
+      console.error(err);
       setError("Erro ao registrar produção");
     }
   };
 
-  // Filter cages by selected group
-  const filteredCages = formData.groupId
-    ? cages?.filter((c: any) => c.groupId === formData.groupId && c.status === 'active')
-    : [];
+
+
+
+
+  const handleCageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cageId = e.target.value;
+    setFormData(prev => ({ ...prev, cageId }));
+  };
+
+  // ... (rest of handleSubmit, etc.)
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Registrar Produção</h1>
-        <p className="text-muted-foreground mt-1">
-          Registre a produção de ovos
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+            ⬅️ Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Registrar Produção</h1>
+            <p className="text-muted-foreground mt-1">
+              Registre a produção de ovos
+            </p>
+          </div>
+        </div>
       </div>
 
       {showScanner && (
@@ -134,11 +191,12 @@ export default function RegisterProduction() {
         <CardHeader>
           <CardTitle>Nova Produção</CardTitle>
           <CardDescription>
-            Selecione o grupo e a gaiola
+            Selecione o tipo de grupo e a gaiola
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+
             {error && (
               <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
                 {error}
@@ -147,20 +205,27 @@ export default function RegisterProduction() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Grupo *
+                Grupo (Galpão) *
               </label>
               <div className="flex gap-2">
                 <select
                   name="groupId"
                   value={formData.groupId}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const newGroupId = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      groupId: newGroupId,
+                      cageId: "" // Reset cage when group changes
+                    }));
+                  }}
                   disabled={isCreating}
                   className="flex-1 px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
                 >
-                  <option value="">Selecione um grupo</option>
-                  {FIXED_GROUPS.map((group) => (
+                  <option value="">Selecione um grupo...</option>
+                  {groups?.filter((g: any) => g.type !== 'machos').map((group: any) => (
                     <option key={group.id} value={group.id}>
-                      {group.name}
+                      {group.name} ({group.type})
                     </option>
                   ))}
                 </select>
@@ -183,7 +248,7 @@ export default function RegisterProduction() {
               <select
                 name="cageId"
                 value={formData.cageId}
-                onChange={handleChange}
+                onChange={handleCageChange}
                 disabled={isCreating || !formData.groupId}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
@@ -219,38 +284,25 @@ export default function RegisterProduction() {
                 disabled={isCreating}
               />
 
-              <Input
-                label="Peso (g)"
-                type="number"
-                name="weight"
-                value={formData.weight}
-                onChange={handleChange}
-                placeholder="0"
-                disabled={isCreating}
-              />
-
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Destino dos ovos *
+                  Tipo de Ovo *
                 </label>
                 <select
-                  name="destination"
-                  value={formData.destination}
+                  name="eggType"
+                  value={formData.eggType}
                   onChange={handleChange}
                   disabled={isCreating}
                   className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
                 >
-                  <option value="">Selecione o destino</option>
-                  <option value="Venda">Venda</option>
-                  <option value="Consumo interno">Consumo interno</option>
-                  <option value="Incubação">Incubação (ovos galados)</option>
-                  <option value="Outros">Outros</option>
+                  <option value="fertile">Ovo Fértil</option>
+                  <option value="table">Ovo de Mesa (Comercial)</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Qualidade
+                  Qualidade da Casca
                 </label>
                 <select
                   name="quality"
@@ -259,12 +311,27 @@ export default function RegisterProduction() {
                   disabled={isCreating}
                   className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
                 >
-                  <option value="A">A</option>
-                  <option value="B">B</option>
-                  <option value="C">C</option>
+                  <option value="A">A (Perfeita)</option>
+                  <option value="B">B (Pequenos defeitos)</option>
+                  <option value="C">C (Trincados/Sujos)</option>
                 </select>
               </div>
+              <div className="flex items-center gap-2 h-full pt-8">
+                <input
+                  type="checkbox"
+                  id="isInternalConsumption"
+                  name="isInternalConsumption"
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                  checked={formData.isInternalConsumption}
+                  onChange={(e) => setFormData(prev => ({ ...prev, isInternalConsumption: e.target.checked }))}
+                />
+                <label htmlFor="isInternalConsumption" className="text-sm font-medium text-foreground">
+                  📦 Consumo Interno (Não envia para o estoque)
+                </label>
+              </div>
             </div>
+
+
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
@@ -294,7 +361,7 @@ export default function RegisterProduction() {
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={() => setLocation("/production")}
+                onClick={() => window.history.back()}
                 disabled={isCreating}
               >
                 Cancelar
@@ -303,6 +370,6 @@ export default function RegisterProduction() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }

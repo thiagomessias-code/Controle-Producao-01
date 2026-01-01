@@ -1,5 +1,6 @@
 import { useRoute, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useGroups } from "@/hooks/useGroups";
@@ -40,7 +41,7 @@ export default function StockDetails() {
         title = "Estoque de Ovos Férteis";
         description = "Lotes de ovos fertilizados de reprodutoras.";
         displayItems = inventory
-            .filter(i => i.type === "egg" && i.subtype === "ovos fertilizados" && i.status === "in_stock")
+            .filter(i => i.type === "egg" && (i.subtype.toLowerCase().includes("fértil") || i.subtype.toLowerCase().includes("fertil")) && i.status === "in_stock")
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
     } else if (isMeat) {
         title = "Estoque de Abatimentos";
@@ -49,41 +50,25 @@ export default function StockDetails() {
             .filter(i => i.type === "meat" && i.status === "in_stock");
     } else if (isChicks) {
         title = "Pintos Disponíveis para Venda";
-        description = "Lotes de crescimento com mais de 20 dias.";
-        const today = new Date();
-        displayItems = groups
-            .filter((g: any) => {
-                if (g.status !== "active" || g.phase !== "crescimento") return false;
-                if (!g.birthDate) return false;
-                const birthDate = new Date(g.birthDate);
-                const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
-                return ageInDays >= 20;
-            })
-            .map((g: any) => ({
-                id: g.id,
-                type: "chick",
-                subtype: g.species,
-                quantity: g.quantity,
-                origin: { date: g.birthDate, groupId: g.id },
-                expirationDate: null // Chicks don't expire in the same way
-            }));
+        description = "Estoque de pintos transferidos para o armazém.";
+        displayItems = inventory
+            .filter(i => i.type === "chick" && i.quantity > 0)
+            .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
     }
 
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-                        <button
-                            onClick={() => window.history.back()}
-                            className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-colors font-bold text-sm uppercase tracking-wide"
-                        >
-                            <span>←</span>
-                            Voltar
-                        </button>
-                        {title}
-                    </h1>
-                    <p className="text-muted-foreground">{description}</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+                        ⬅️ Voltar
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground">
+                            {title}
+                        </h1>
+                        <p className="text-muted-foreground">{description}</p>
+                    </div>
                 </div>
             </div>
 
@@ -146,8 +131,14 @@ export default function StockDetails() {
                                         </div>
                                         {item.origin.batchId && (
                                             <div className="flex justify-between border-b pb-1">
-                                                <span className="text-muted-foreground">Lote ID:</span>
+                                                <span className="text-muted-foreground">Lote:</span>
                                                 <span className="font-medium text-xs font-mono">{item.origin.batchId.slice(0, 8)}...</span>
+                                            </div>
+                                        )}
+                                        {item.origin.cageId && (
+                                            <div className="flex justify-between border-b pb-1">
+                                                <span className="text-muted-foreground">Gaiola ID:</span>
+                                                <span className="font-medium text-xs font-mono">{item.origin.cageId.slice(0, 8)}...</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between border-b pb-1">

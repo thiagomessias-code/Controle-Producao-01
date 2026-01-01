@@ -55,12 +55,7 @@ export default function GroupList() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="primary"
-            onClick={() => setLocation("/groups/create")}
-          >
-            + Novo Galpão/Grupo
-          </Button>
+          {/* Employee mode: No create button */}
         </div>
       </div>
 
@@ -126,16 +121,7 @@ export default function GroupList() {
           description={typeFilter
             ? `Nenhum galpão encontrado do tipo ${typeFilter}.`
             : "Comece criando um novo galpão ou grupo para organizar sua produção."}
-          action={
-            !typeFilter && (
-              <Button
-                variant="primary"
-                onClick={() => setLocation("/groups/create")}
-              >
-                Criar Primeiro Grupo
-              </Button>
-            )
-          }
+          action={null}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -152,9 +138,17 @@ export default function GroupList() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Capacidade</p>
-                    <p className="font-semibold">{formatQuantity(group.capacity)}</p>
+                  <div className="flex-1">
+                    <p className="text-muted-foreground">Ocupação</p>
+                    <p className="font-semibold text-lg">
+                      {formatQuantity(group.quantity || 0)} <span className="text-sm text-gray-400 font-normal">/ {formatQuantity(group.capacity)} aves</span>
+                    </p>
+                    <div className="w-full bg-gray-100 rounded-full h-2 mt-1 overflow-hidden">
+                      <div
+                        className={`h-2 rounded-full transition-all ${((group.quantity || 0) / (group.capacity || 1)) >= 0.9 ? "bg-red-500" : "bg-green-500"}`}
+                        style={{ width: `${Math.min(((group.quantity || 0) / (group.capacity || 1)) * 100, 100)}%` }}
+                      ></div>
+                    </div>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Tipo</p>
@@ -170,14 +164,6 @@ export default function GroupList() {
                     onClick={() => setLocation(`/groups/${group.id}`)}
                   >
                     Ver Gaiolas
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(group.id)}
-                    isLoading={isDeleting}
-                  >
-                    Deletar
                   </Button>
                 </div>
               </CardContent>

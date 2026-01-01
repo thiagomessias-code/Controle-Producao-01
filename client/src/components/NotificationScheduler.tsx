@@ -1,43 +1,92 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBatches } from "@/hooks/useBatches";
+import { useGroups } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAppStore } from "@/hooks/useAppStore";
+import { feedApi, FeedConfiguration } from "@/api/feed";
+import { supabase } from "@/api/supabaseClient";
 
 export default function NotificationScheduler() {
   const { batches } = useBatches();
+  const { groups } = useGroups();
   const { scheduleRoutine, sendNotification } = useNotifications();
-  const { addPendingTask, pendingTasks } = useAppStore();
+  const { addPendingTask, pendingTasks, addTodo, todos, clearAllTasks } = useAppStore();
+  const [configs, setConfigs] = useState<FeedConfiguration[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
 
   const prevPendingCount = useRef(pendingTasks.length);
 
-  // Filter for active batches to schedule notifications for
-  const safeGroups = batches?.filter(b => b.status === 'active') || [];
+  // Initial cleanup if cache is bloated
+  useEffect(() => {
+    if (pendingTasks.length > 500 || todos.length > 500) {
+      console.log(`[NotificationScheduler] Bloated cache detected (${pendingTasks.length} tasks). Clearing...`);
+      clearAllTasks();
+    }
+  }, []);
 
   useEffect(() => {
-    if (safeGroups.length === 0) return;
+    Promise.all([
+      feedApi.getConfigurations(),
+      supabase.from('tasks_templates').select('*').eq('active', true)
+    ]).then(([feedConfigs, templatesRes]) => {
+      setConfigs(feedConfigs);
+      setTemplates(templatesRes.data || []);
+    }).catch(console.error);
+  }, []);
 
-    safeGroups.forEach((group) => {
-      const schedule = (h: number, taskType: string, title: string) => {
-        const actionUrl = `/tasks/execute?groupId=${group.id}&task=${taskType}&time=${h}:00`;
-        scheduleRoutine(h, 0, title, actionUrl, () => {
-          addPendingTask(title, actionUrl);
+  // Filter for active batches/groups to schedule notifications for
+  const activeBatches = batches?.filter(b => b.status === 'active') || [];
+
+  useEffect(() => {
+    if (activeBatches.length === 0 || (configs.length === 0 && templates.length === 0)) return;
+
+    activeBatches.forEach((batch) => {
+      // Find group for this batch
+      const group = groups.find(g => g.id === batch.groupId);
+      if (!group) return;
+
+      // Normalize type
+      let type = (group.type || '').toLowerCase();
+      if (type.includes('prod') || type.includes('postura')) type = 'production';
+      else if (type.includes('macho')) type = 'males';
+      else if (type.includes('reprod') || type.includes('matriz')) type = 'breeders';
+
+      const schedule = (timeStr: string, taskType: string, title: string) => {
+        const [h, m] = timeStr.split(':').map(Number);
+        const actionUrl = `/tasks/execute?batchId=${batch.id}&task=${taskType}&time=${timeStr}`;
+
+        scheduleRoutine(h, m || 0, title, actionUrl, () => {
+          // Check if this specific todo already exists for today
+          const today = new Date().toISOString().split('T')[0];
+          const exists = todos.some(t => t.task === title && t.dueDate === today);
+
+          if (!exists) {
+            addTodo(title, today, true);
+            addPendingTask(title, actionUrl);
+          }
         });
       };
 
-      // Alimentação
-      schedule(6, "feed", `Alimentar ${group.name} 🌾`);
-      schedule(12, "feed", `Alimentar ${group.name} 🌾`);
-      schedule(18, "feed", `Alimentar ${group.name} 🌾`);
+      // 1. Automate feeding based on Admin-defined Feed Configurations
+      const config = configs.find(c => c.group_type === type && c.active);
+      if (config) {
+        config.schedule_times.forEach(time => {
+          schedule(time, "feed", `Alimentar ${batch.name} (${group.name}) 🌾`);
+        });
+      }
 
-      // Água
-      schedule(8, "water", `Verificar Água ${group.name} 💧`);
-      schedule(14, "water", `Verificar Água ${group.name} 💧`);
+      // 2. Automate routines based on Admin-defined Task Templates
+      // Filter templates that apply to this group or are global
+      const relevantTemplates = templates.filter(tmpl => {
+        if (!tmpl.target_group) return true; // Global
+        return tmpl.target_group === type;
+      });
 
-      // Ovos
-      schedule(10, "egg", `Coleta de Ovos ${group.name} 🥚`);
-      schedule(16, "egg", `Coleta de Ovos ${group.name} 🥚`);
+      relevantTemplates.forEach(tmpl => {
+        schedule(tmpl.default_time, tmpl.task_type || 'custom', `${tmpl.title} - ${batch.name} 📋`);
+      });
     });
-  }, [safeGroups, scheduleRoutine, addPendingTask]);
+  }, [activeBatches, groups, configs, templates, scheduleRoutine, addPendingTask, addTodo, todos]);
 
   // Watch pending tasks to trigger notifications
   useEffect(() => {

@@ -16,28 +16,7 @@ export function useBatches() {
   } = useQuery({
     queryKey: ["batches"],
     queryFn: async () => {
-      // Check local cache first
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          // Background refresh
-          batchesApi.getAll().then(newData => {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-              data: newData,
-              timestamp: Date.now()
-            }));
-            queryClient.setQueryData(["batches"], newData);
-          });
-          return data;
-        }
-      }
-
       const data = await batchesApi.getAll();
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data,
-        timestamp: Date.now()
-      }));
       return data;
     }
   });
@@ -67,15 +46,6 @@ export function useBatches() {
     },
   });
 
-  // Sync with localStorage on changes
-  useEffect(() => {
-    if (batches) {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: batches,
-        timestamp: Date.now()
-      }));
-    }
-  }, [batches]);
 
   return {
     batches,
@@ -100,4 +70,14 @@ export const useBatchById = (id: string) => {
   });
 
   return { batch, isLoading, error };
+};
+
+export const useBatchesByCageId = (cageId: string) => {
+  const { data: batches, isLoading, error, refetch } = useQuery({
+    queryKey: ["batches", "cage", cageId],
+    queryFn: () => batchesApi.getByCageId(cageId),
+    enabled: !!cageId,
+  });
+
+  return { batches, isLoading, error, refetch };
 };

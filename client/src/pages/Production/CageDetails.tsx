@@ -3,12 +3,20 @@ import { useLocation, useParams } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Loading from "@/components/ui/Loading";
+import Input from "@/components/ui/Input";
 import { useCages } from "@/hooks/useCages";
-import { useBatches } from "@/hooks/useBatches";
 import { useGroups } from "@/hooks/useGroups";
 import { computeFeedType } from "@/utils/feed";
+import { formatQuantity } from "@/utils/format";
+import { formatDate } from "@/utils/date";
+
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { feedApi, FeedType } from "@/api/feed";
+import { useBatches, useBatchesByCageId } from "@/hooks/useBatches";
 
 export default function CageDetails() {
+    const { user } = useAuth();
     const { id: cageId } = useParams();
     const [, setLocation] = useLocation();
     const cage = useCages().cages?.find((c: any) => c.id === cageId);
@@ -16,10 +24,13 @@ export default function CageDetails() {
 
     const { cages, update: updateCage } = useCages();
 
-    const { batches, update: updateBatch, create: createBatch } = useBatches();
+    const { update: updateBatch, create: createBatch } = useBatches();
+    const { batches, isLoading: batchesLoading, refetch: refetchBatches } = useBatchesByCageId(cageId || "");
 
-    // Find the active batch in this cage
-    const activeGroup = batches?.find((b: any) => b.cageId === cageId && b.status === 'active');
+    // Find the active batch in this cage - Prioritizing batches with birds to avoid selecting empty active records
+    const activeGroup = (batches || [])
+        .filter((b: any) => String(b.cageId) === String(cageId) && b.status === 'active')
+        .sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
 
     const [isMortalityModalOpen, setIsMortalityModalOpen] = useState(false);
     const [mortalityQuantity, setMortalityQuantity] = useState("");
@@ -36,8 +47,30 @@ export default function CageDetails() {
 
     const [transferData, setTransferData] = useState({
         targetCageId: "",
-        quantity: ""
+        quantity: "",
+        males: "0",
+        females: "0"
     });
+
+    const [feedTypes, setFeedTypes] = useState<FeedType[]>([]);
+    const [selectedFeedTypeId, setSelectedFeedTypeId] = useState("");
+
+    useEffect(() => {
+        const fetchFeedTypes = async () => {
+            try {
+                const types = await feedApi.getFeedTypes();
+                setFeedTypes(types);
+                // Look for a sensible default or the first one
+                if (types.length > 0) {
+                    const defaultType = types.find(t => t.name.toLowerCase().includes(feedType.toLowerCase())) || types[0];
+                    setSelectedFeedTypeId(defaultType.id);
+                }
+            } catch (err) {
+                console.error("Error fetching feed types:", err);
+            }
+        };
+        fetchFeedTypes();
+    }, []);
 
 
 
@@ -78,14 +111,18 @@ export default function CageDetails() {
         if (!targetCage) return;
 
         if (qty > activeGroup.quantity) {
-            alert("Quantidade maior que o disponível no lote.");
+            toast.error("Quantidade maior que o disponível no lote.");
+            return;
+        }
+
+        if (qty <= 0) {
+            toast.error("A quantidade deve ser maior que zero.");
             return;
         }
 
         if (targetCage.currentQuantity + qty > targetCage.capacity) {
-            if (!confirm(`⚠️ ATENÇÃO: A gaiola de destino (${targetCage.name}) excederá a capacidade! \n\nAtual: ${targetCage.currentQuantity}\nAdicionando: ${qty}\nCapacidade: ${targetCage.capacity}\n\nDeseja continuar mesmo assim?`)) {
-                return;
-            }
+            toast.error(`⚠️ OPERAÇÃO BLOQUEADA: A capacidade da gaiola de destino (${targetCage.name}) seria excedida.\n\nAtual: ${targetCage.currentQuantity}\nAdicionando: ${qty}\nCapacidade: ${targetCage.capacity}\nDisponível: ${targetCage.capacity - targetCage.currentQuantity}`, { duration: 5000 });
+            return;
         }
 
         try {
@@ -98,14 +135,22 @@ export default function CageDetails() {
                     date: transferDate,
                     event: "Transferência (Saída)",
                     quantity: qty,
-                    details: `Transferido para gaiola ${targetCage.name}`
+                    details: `Transferido para gaiola ${targetCage.name} por ${user?.name || 'Sistema'}`
                 }
             ];
+
+            const malesMoving = parseInt(transferData.males) || 0;
+            const femalesMoving = parseInt(transferData.females) || 0;
+
+            const newRemainingQty = Math.max(0, activeGroup.quantity - qty);
 
             await updateBatch({
                 id: activeGroup.id,
                 data: {
-                    quantity: activeGroup.quantity - qty,
+                    quantity: newRemainingQty,
+                    status: newRemainingQty <= 0 ? "inactive" : "active",
+                    males: Math.max(0, (activeGroup.males || 0) - malesMoving),
+                    females: Math.max(0, (activeGroup.females || 0) - femalesMoving),
                     history: sourceHistory
                 }
             });
@@ -129,7 +174,7 @@ export default function CageDetails() {
                         date: transferDate,
                         event: "Transferência (Entrada)",
                         quantity: qty,
-                        details: `Recebido da gaiola ${cage.name}`
+                        details: `Recebido da gaiola ${cage.name} por ${user?.name || 'Sistema'}`
                     }
                 ];
 
@@ -137,25 +182,30 @@ export default function CageDetails() {
                     id: destBatch.id,
                     data: {
                         quantity: destBatch.quantity + qty,
+                        males: (destBatch.males || 0) + malesMoving,
+                        females: (destBatch.females || 0) + femalesMoving,
                         history: destHistory
                     }
                 });
             } else {
                 // Create new batch in destination
                 await createBatch({
-                    name: `${activeGroup.name} (T)`,
+                    name: activeGroup.name, // Mantendo o nome original como solicitado ("seguir o número do lote")
                     species: activeGroup.species,
                     quantity: qty,
+                    males: malesMoving,
+                    females: femalesMoving,
+                    parentId: activeGroup.id, // Rastreabilidade do lote pai
                     cageId: transferData.targetCageId,
                     phase: activeGroup.phase,
                     birthDate: activeGroup.birthDate,
-                    notes: `Transferido de ${cage.name}`,
+                    notes: `Transferido de ${cage.name}. Origem: ${activeGroup.name}`,
                     history: [
                         {
                             date: transferDate,
                             event: "Lote Criado (Transferência)",
                             quantity: qty,
-                            details: `Transferido da gaiola ${cage.name}`
+                            details: `Recebido da gaiola ${cage.name} por ${user?.name || 'Sistema'}. Lote Origem: ${activeGroup.name}`
                         }
                     ]
                 });
@@ -170,13 +220,14 @@ export default function CageDetails() {
             });
 
             setIsTransferModalOpen(false);
-            setTransferData({ targetCageId: "", quantity: "" });
-            alert("Transferência realizada com sucesso!");
+            setTransferData({ targetCageId: "", quantity: "", males: "0", females: "0" });
+            toast.success("Transferência realizada com sucesso!");
+            refetchBatches(); // Atualizar dados locais
             window.location.reload();
 
         } catch (error) {
             console.error("Erro na transferência:", error);
-            alert("Erro ao realizar transferência.");
+            toast.error("Erro ao realizar transferência.");
         }
     };
 
@@ -196,10 +247,12 @@ export default function CageDetails() {
             ];
 
             // 1. Update Batch
+            const newQty = activeGroup.quantity - qty;
             await updateBatch({
                 id: activeGroup.id,
                 data: {
-                    quantity: activeGroup.quantity - qty,
+                    quantity: Math.max(0, newQty),
+                    status: newQty <= 0 ? "inactive" : "active",
                     history: newHistory
                 }
             });
@@ -214,31 +267,47 @@ export default function CageDetails() {
 
             setIsMortalityModalOpen(false);
             setMortalityQuantity("");
-            alert("Mortalidade registrada com sucesso.");
+            toast.success("Mortalidade registrada.");
+            refetchBatches(); // Atualizar dados locais
             window.location.reload(); // Simple reload to refresh data
         } catch (error) {
             console.error("Erro ao registrar mortalidade:", error);
-            alert("Erro ao registrar.");
+            toast.error("Erro ao registrar.");
         }
     };
 
     const handleRegisterFeed = async () => {
-        if (!activeGroup) return;
-        const amountKg = 0.24; // fixed 240g
+        if (!activeGroup || !cage) return;
+        const amountKg = parseFloat(feedAmount);
         const gramsPerBird = (amountKg * 1000) / activeGroup.quantity;
 
         try {
+            const feedTypeObj = feedTypes.find(t => t.id === selectedFeedTypeId);
+            const feedTypeName = feedTypeObj?.name || feedType;
+
+            // 1. Create Consumption Record (Syncs with stock via trigger)
+            await feedApi.create({
+                groupId: cage.groupId, // Using groupId for aviary filtering in admin
+                cageId: cageId,
+                batchId: activeGroup.id,
+                date: new Date().toISOString(),
+                quantity: amountKg,
+                feedTypeId: selectedFeedTypeId,
+                feedTypeName: feedTypeName,
+                notes: `Fornecido via Gaiola ${cage.name}. (Registrado por ${user?.name || 'Sistema'})`
+            });
+
+            // 2. Update Batch History for traceability
             const newHistory = [
                 ...(activeGroup.history || []),
                 {
                     date: new Date().toISOString(),
                     event: "Alimentação",
-                    quantity: 0, // Not a quantity change of birds
-                    details: `Fornecido ${amountKg}kg de ração (${feedType}). Consumo: ${gramsPerBird.toFixed(1)}g/ave.`
+                    quantity: 0,
+                    details: `Fornecido ${amountKg}kg de ração (${feedTypeName}). Consumo: ${gramsPerBird.toFixed(1)}g/ave. Registrado por ${user?.name || 'Sistema'}`
                 }
             ];
 
-            // Update Batch History
             await updateBatch({
                 id: activeGroup.id,
                 data: {
@@ -247,12 +316,11 @@ export default function CageDetails() {
             });
 
             setIsFeedModalOpen(false);
-            // feedAmount remains fixed
-            alert(`Alimentação registrada! Consumo estimado: ${gramsPerBird.toFixed(1)}g por ave.`);
+            toast.success("Alimentação registrada e estoque atualizado!");
             window.location.reload();
         } catch (error) {
             console.error("Erro ao registrar alimentação:", error);
-            alert("Erro ao registrar.");
+            toast.error("Erro ao registrar no estoque.");
         }
     };
 
@@ -264,14 +332,16 @@ export default function CageDetails() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">{cage.name}</h1>
-                    <p className="text-muted-foreground mt-1">Detalhes da Gaiola de Produção</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+                        ⬅️ Voltar
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground">{cage.name}</h1>
+                        <p className="text-muted-foreground mt-1">Detalhes da Gaiola de Produção</p>
+                    </div>
                 </div>
-                <Button variant="outline" onClick={() => setLocation("/production-management")}>
-                    Voltar
-                </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -291,6 +361,19 @@ export default function CageDetails() {
                                 style={{ width: `${Math.min((cage.currentQuantity / cage.capacity) * 100, 100)}%` }}
                             ></div>
                         </div>
+
+                        {activeGroup && (
+                            <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-100">
+                                <div className="p-2 bg-blue-50 rounded-xl">
+                                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Machos</p>
+                                    <p className="text-xl font-black text-blue-700 tabular-nums">{activeGroup.males || 0}</p>
+                                </div>
+                                <div className="p-2 bg-pink-50 rounded-xl">
+                                    <p className="text-[9px] font-black text-pink-600 uppercase tracking-widest">Fêmeas</p>
+                                    <p className="text-xl font-black text-pink-700 tabular-nums">{activeGroup.females || 0}</p>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -437,13 +520,14 @@ export default function CageDetails() {
                                 <label className="block text-sm font-medium mb-1">Tipo de Ração</label>
                                 <select
                                     className="w-full border rounded p-2"
-                                    value={feedType}
-                                    onChange={(e) => setFeedType(e.target.value)}
+                                    value={selectedFeedTypeId}
+                                    onChange={(e) => setSelectedFeedTypeId(e.target.value)}
                                     disabled={!extendFeed}
                                 >
-                                    <option value="Postura">Postura</option>
-                                    <option value="Crescimento">Crescimento</option>
-                                    <option value="Engorda">Engorda</option>
+                                    {feedTypes.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name} (Estoque: {t.estoque_atual.toFixed(1)}kg)</option>
+                                    ))}
+                                    {feedTypes.length === 0 && <option value="">Carregando...</option>}
                                 </select>
                             </div>
 
@@ -492,7 +576,7 @@ export default function CageDetails() {
                                     }}
                                 >
                                     <option value="">Selecione o Grupo...</option>
-                                    {groups?.map(g => (
+                                    {groups?.map((g: any) => (
                                         <option key={g.id} value={g.id}>{g.name}</option>
                                     ))}
                                 </select>
@@ -522,13 +606,27 @@ export default function CageDetails() {
                                 />
                             )}
 
-                            <Input
-                                label="Quantidade"
-                                type="number"
-                                value={transferData.quantity}
-                                onChange={(e) => setTransferData({ ...transferData, quantity: e.target.value })}
-                                placeholder="Ex: 10"
-                            />
+                            <div className="grid grid-cols-3 gap-3">
+                                <Input
+                                    label="Total"
+                                    type="number"
+                                    value={transferData.quantity}
+                                    onChange={(e) => setTransferData({ ...transferData, quantity: e.target.value })}
+                                    placeholder="0"
+                                />
+                                <Input
+                                    label="Machos"
+                                    type="number"
+                                    value={transferData.males}
+                                    onChange={(e) => setTransferData({ ...transferData, males: e.target.value })}
+                                />
+                                <Input
+                                    label="Fêmeas"
+                                    type="number"
+                                    value={transferData.females}
+                                    onChange={(e) => setTransferData({ ...transferData, females: e.target.value })}
+                                />
+                            </div>
 
                             {transferData.quantity && activeGroup && parseInt(transferData.quantity) > activeGroup.quantity && (
                                 <p className="text-xs text-red-600 font-bold">

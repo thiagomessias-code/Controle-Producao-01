@@ -71,7 +71,7 @@ export default function Profile() {
           <Button
             variant="outline"
             className="w-full"
-            onClick={() => alert("Funcionalidade em desenvolvimento")}
+            onClick={() => setLocation("/change-password")}
           >
             Alterar Senha
           </Button>

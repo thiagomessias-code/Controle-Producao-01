@@ -2,31 +2,36 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import Button from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { useBatches } from "@/hooks/useBatches";
+import { useQuery } from "@tanstack/react-query";
+import { caixasApi } from "@/api/caixas";
 import { formatQuantity } from "@/utils/format";
 import { getDaysDifference } from "@/utils/date";
+import { Package, History, ArrowRight, Activity, Calendar } from "lucide-react";
 
 export default function GrowthBoxList() {
     const [, setLocation] = useLocation();
-    const { batches: groups, isLoading } = useBatches();
-    const [showHistory, setShowHistory] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
+    const [showEmpty, setShowEmpty] = useState(true);
 
-    // Filter for growth boxes (consider "caricoto" como fase de crescimento para mock/teste)
-    const growthBoxes = (groups || []).filter((g) => {
-        // Must be growth phase
-        if (g.phase !== "crescimento" && g.phase !== "caricoto") return false;
+    const { data: caixas = [], isLoading } = useQuery({
+        queryKey: ['growth-boxes-list'],
+        queryFn: caixasApi.getAll
+    });
 
+    console.log('[GrowthBoxList] Render Caixas:', caixas);
+
+    // Filter boxes
+    const filteredBoxes = caixas.filter((box: any) => {
         // Search filter
-        if (searchTerm && !g.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (searchTerm && !box.name.toLowerCase().includes(searchTerm.toLowerCase())) {
             return false;
         }
 
-        // History filter
-        if (showHistory) {
-            return g.status === "inactive" || g.status === "sold";
-        }
-        return g.status === "active";
+        // Status filter (Active/Maintenance/Inactive) - usually we show active in this list
+        if (box.status !== 'active') return false;
+
+        // "Empty" filter if needed could go here, but usually we want to see everything or toggle
+        return true;
     });
 
     if (isLoading) {
@@ -34,116 +39,170 @@ export default function GrowthBoxList() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-foreground">
-                        {showHistory ? "Histórico de Caixas 📦" : "Caixas de Crescimento 📦"}
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                        {showHistory
-                            ? "Visualize caixas finalizadas"
-                            : "Gerencie seus lotes em fase de crescimento (0-35 dias)"}
+        <div className="space-y-8 max-w-7xl mx-auto px-6 py-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
+                <div className="space-y-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-100/50">
+                        Fase de Desenvolvimento (Recria)
+                    </div>
+                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">Caixas de Crescimento</h1>
+                    <p className="text-gray-500 font-medium text-lg leading-relaxed">
+                        Gestão de <span className="text-orange-600 font-bold">aves jovens</span> em ambiente controlado.
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={() => setShowHistory(!showHistory)}
-                    >
-                        {showHistory ? "Ver Ativas" : "Ver Histórico / Inativas"}
-                    </Button>
-                    <Button variant="outline" onClick={() => setLocation("/groups")}>
-                        Ver Galpões
-                    </Button>
-                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => window.history.back()}
+                    className="rounded-xl border-orange-100 text-orange-600 hover:bg-orange-50 font-bold"
+                >
+                    ⬅️ Voltar
+                </Button>
             </div>
 
-            <div className="relative">
+            <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                    <span className="text-orange-300 group-focus-within:text-orange-500 transition-colors">🔍</span>
+                </div>
                 <input
                     type="text"
-                    placeholder="Buscar caixa..."
+                    placeholder="Buscar caixa específica..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 pl-10 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full pl-12 pr-6 py-4 rounded-2xl border-none bg-white shadow-xl shadow-orange-100/30 text-gray-900 font-bold placeholder:text-gray-300 focus:ring-2 focus:ring-orange-200 transition-all outline-none"
                 />
-                <span className="absolute left-3 top-2.5 text-muted-foreground">🔍</span>
             </div>
 
-            {growthBoxes.length === 0 ? (
-                <div className="text-center py-12 bg-muted/50 rounded-lg">
-                    <p className="text-xl font-semibold text-foreground mb-2">
-                        {showHistory ? "Nenhuma caixa no histórico" : "Nenhuma caixa ativa encontrada"}
-                    </p>
-                    <p className="text-muted-foreground">
-                        {showHistory
-                            ? "As caixas transferidas para gaiolas aparecerão aqui."
-                            : "Transfira lotes da incubação para vê-los aqui."}
-                    </p>
+            {filteredBoxes.length === 0 ? (
+                <div className="bg-white border-2 border-dashed border-orange-100 rounded-[2rem] p-16 text-center">
+                    <div className="text-6xl mb-6 grayscale opacity-20">📦</div>
+                    <h3 className="text-xl font-black text-gray-900 mb-2">Nenhuma caixa disponível</h3>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-8">Novas caixas devem ser configuradas pelo administrador</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {growthBoxes.map((box) => {
-                        const age = box.birthDate
-                            ? getDaysDifference(new Date(box.birthDate), new Date())
-                            : 0;
-                        const daysLeft = 35 - age;
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {filteredBoxes.map((box: any) => {
+                        const activeBatches = box.lotes?.filter((l: any) => l.status === 'active') || [];
+                        const isAvailable = activeBatches.length === 0;
 
                         return (
                             <Card
                                 key={box.id}
-                                className={`hover:shadow-lg transition-shadow cursor-pointer border-l-4 ${box.status === 'inactive'
-                                    ? 'border-l-gray-400 opacity-75 bg-gray-50'
-                                    : 'border-l-blue-500'
-                                    }`}
-                                onClick={() => setLocation(`/batches/${box.id}`)}
+                                className={`hover:shadow-2xl hover:shadow-orange-200/50 hover:-translate-y-2 transition-all duration-300 border-none relative overflow-hidden group ${isAvailable ? 'bg-orange-50/20' : 'bg-white'}`}
                             >
-                                <CardHeader className="pb-2">
-                                    <div className="flex justify-between items-start">
-                                        <CardTitle className="text-lg">{box.name}</CardTitle>
-                                        <span className={`px-2 py-1 rounded text-xs font-medium ${box.status === 'active' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800'
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -mr-16 -mt-16 opacity-30 group-hover:bg-orange-100 transition-colors duration-500"></div>
+
+                                <CardHeader className="relative z-10 pb-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border shadow-sm ${isAvailable ? 'bg-white text-orange-400 border-orange-100' : 'bg-orange-600 text-white border-orange-600'
                                             }`}>
-                                            {box.status === 'active' ? `${age} dias` : 'Finalizada'}
+                                            {isAvailable ? 'Vazia' : `${activeBatches.length} Lote(s) Ativo(s)`}
                                         </span>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Capacidade</p>
+                                            <p className="text-xs font-black text-gray-500 uppercase">{box.capacidade} AVES</p>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-muted-foreground">{box.species}</p>
+                                    <CardTitle className="text-2xl font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight">
+                                        {box.name}
+                                    </CardTitle>
+                                    <div className="flex items-center gap-2 pt-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">
+                                            📍 {box.aviarios?.nome} {box.aviarios?.cidade ? `- ${box.aviarios.cidade}` : ''}
+                                        </p>
+                                    </div>
                                 </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Quantidade:</span>
-                                            <span className="font-semibold text-primary">
-                                                {formatQuantity(box.quantity)}
-                                            </span>
-                                        </div>
 
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Fase:</span>
-                                            <span className="text-sm font-medium">Crescimento</span>
-                                        </div>
+                                <CardContent className="relative z-10 space-y-6">
+                                    {!isAvailable ? (
+                                        <div className="space-y-4">
+                                            {activeBatches.map((batch: any, bIdx: number) => {
+                                                const age = batch.birthDate
+                                                    ? getDaysDifference(new Date(batch.birthDate), new Date())
+                                                    : 0;
+                                                const daysLeft = 35 - age;
 
-                                        {box.status === 'active' && (
-                                            <div className="pt-2 border-t border-border space-y-2">
-                                                <div className="flex justify-between items-center text-sm">
-                                                    <span className="text-muted-foreground">Transferência em:</span>
-                                                    <span className={`font-bold ${daysLeft <= 0 ? "text-green-600" : "text-amber-600"}`}>
-                                                        {daysLeft <= 0 ? "Pronto!" : `${daysLeft} dias`}
-                                                    </span>
+                                                return (
+                                                    <div
+                                                        key={batch.id}
+                                                        className="p-5 rounded-[1.5rem] bg-orange-50/50 border border-orange-100/50 hover:bg-orange-50 transition-colors group/lote"
+                                                    >
+                                                        <div className="flex justify-between items-center mb-4">
+                                                            <div>
+                                                                <p className="text-[10px] font-black text-orange-900/40 uppercase tracking-widest">Identificador</p>
+                                                                <p className="text-sm font-black text-gray-900">Lote #{batch.batchNumber || 'S/N'}</p>
+                                                            </div>
+                                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter ${daysLeft <= 0 ? "bg-green-600 text-white" : "bg-white text-orange-600 border border-orange-100"}`}>
+                                                                {daysLeft <= 0 ? 'MATURADO' : `${daysLeft}d p/ abate`}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex items-end justify-between">
+                                                            <div>
+                                                                <p className="text-[10px] font-black text-orange-900/40 uppercase tracking-widest mb-1">População Ativa</p>
+                                                                <p className="text-2xl font-black text-gray-900 tabular-nums">
+                                                                    {formatQuantity(batch.quantity)}
+                                                                    <span className="text-[10px] ml-1 text-gray-400 font-bold uppercase">Aves</span>
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                variant="primary"
+                                                                size="sm"
+                                                                className="rounded-xl font-black shadow-md shadow-orange-100/50 flex items-center gap-2 group/btn px-4"
+                                                                onClick={() => setLocation(`/batches/${batch.id}`)}
+                                                            >
+                                                                DETAILS
+                                                                <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                                                            </Button>
+                                                        </div>
+
+                                                        <div className="mt-4 pt-4 border-t border-orange-100/50 flex items-center gap-4">
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                                <Calendar className="w-3.5 h-3.5" />
+                                                                {age} DIAS DE VIDA
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="py-12 text-center rounded-[2rem] border-2 border-dashed border-orange-100">
+                                            <Package className="w-10 h-10 text-orange-100 mx-auto mb-3" />
+                                            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Gaiola disponível para novos lotes</p>
+                                        </div>
+                                    )}
+
+                                    {(() => {
+                                        const finishedBatches = box.lotes?.filter((l: any) => l.status !== 'active' && l.status !== 'ativo')
+                                            .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+                                            .slice(0, 2) || [];
+
+                                        if (finishedBatches.length === 0) return null;
+
+                                        return (
+                                            <div className="pt-4 border-t border-orange-50">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <History className="w-3.5 h-3.5 text-orange-300" />
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recém Desocupada</p>
                                                 </div>
-                                                <Button
-                                                    variant="primary"
-                                                    size="sm"
-                                                    className="w-full mt-2"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setLocation(`/batches/${box.id}`);
-                                                    }}
-                                                >
-                                                    Gerenciar / Transferir
-                                                </Button>
+                                                <div className="space-y-2">
+                                                    {finishedBatches.map((fb: any) => (
+                                                        <div
+                                                            key={fb.id}
+                                                            className="flex justify-between items-center p-3 rounded-xl bg-gray-50/50 hover:bg-orange-50 transition-colors cursor-pointer group/history"
+                                                            onClick={() => setLocation(`/batches/${fb.id}`)}
+                                                        >
+                                                            <span className="text-[11px] font-black text-gray-500 uppercase tracking-tighter truncate group-hover/history:text-orange-600 transition-colors">
+                                                                Lote #{fb.batchNumber || 'S/N'}
+                                                            </span>
+                                                            <ArrowRight className="w-3 h-3 text-gray-300 group-hover/history:text-orange-400 group-hover/history:translate-x-1 transition-all" />
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
+                                        );
+                                    })()}
                                 </CardContent>
                             </Card>
                         );

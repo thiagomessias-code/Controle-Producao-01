@@ -13,16 +13,28 @@ export interface Batch {
   name: string;
   species: string;
   quantity: number;
-  birthDate?: string; // ISO Date string
-  cageId?: string; // Link to Cage
+  birthDate?: string;
+  cageId?: string;
   status: "active" | "inactive" | "sold";
   phase?: "caricoto" | "crescimento" | "postura" | "machos" | "reprodutoras";
-  originId?: string; // ID of the incubation batch
-  batchId?: string; // Lote ID (legacy/external)
+  originId?: string;
   notes?: string;
   history?: HistoryEvent[];
   createdAt: string;
   updatedAt: string;
+  // Extra fields from Lotes table mapping
+  galpao_id?: string;
+  gaiola_name?: string;
+  galpao_name?: string;
+  aviary_name?: string;
+  aviary_city?: string;
+  aviaryId?: string; // Mapped for filtering
+  males?: number;
+  females?: number;
+  parentId?: string;
+  location?: string;
+  meta_mortalidade?: number;
+  meta_producao_diaria?: number;
 }
 
 export interface CreateBatchRequest {
@@ -32,117 +44,138 @@ export interface CreateBatchRequest {
   cageId?: string;
   phase?: "caricoto" | "crescimento" | "postura" | "machos" | "reprodutoras";
   originId?: string;
-  batchId?: string;
   birthDate?: string;
   notes?: string;
   history?: HistoryEvent[];
+  males?: number;
+  females?: number;
+  parentId?: string;
+  meta_mortalidade?: number;
+  meta_producao_diaria?: number;
+  location?: string;
 }
 
 export interface UpdateBatchRequest extends Partial<CreateBatchRequest> {
   status?: "active" | "inactive" | "sold";
-  phase?: "caricoto" | "crescimento" | "postura" | "machos" | "reprodutoras";
 }
 
-// MOCK: LocalStorage Persistence
-const STORAGE_KEY = "mock_batches";
+// Map Backend 'Lote' to Frontend 'Batch'
+const calculatePhase = (dateString: string): "caricoto" | "crescimento" | "postura" => {
+  if (!dateString) return "crescimento";
+  const start = new Date(dateString);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
-const DEFAULT_BATCHES: Batch[] = [
-  {
-    id: "batch-p1",
-    name: "Lote P1-2024",
-    species: "Codornas Japonesas",
-    quantity: 95,
-    cageId: "cage-p1",
-    status: "active",
-    phase: "postura",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    birthDate: "2024-01-15"
-  },
-  {
-    id: "batch-m1",
-    name: "Lote M1-2024",
-    species: "Codornas Japonesas",
-    quantity: 45,
-    cageId: "cage-m1",
-    status: "active",
-    phase: "machos",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    birthDate: "2024-02-01"
-  }
-];
-
-const loadBatches = (): Batch[] => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_BATCHES));
-    return DEFAULT_BATCHES;
-  }
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return DEFAULT_BATCHES;
-  }
+  if (diffDays < 21) return "caricoto"; // Or "Inicial"
+  if (diffDays < 42) return "crescimento";
+  return "postura";
 };
 
-const saveBatches = (batches: Batch[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
+const mapLoteToBatch = (lote: any): Batch => {
+  return {
+    id: lote.id,
+    name: lote.name,
+    species: lote.linhagem || "Codornas Japonesas",
+    quantity: lote.quantidade,
+    birthDate: lote.data_nascimento,
+    cageId: lote.gaiola_id || lote.caixa_id,
+    status: lote.status === 'ativo' ? 'active' : 'inactive',
+    phase: lote.fase,
+    notes: lote.observacoes || "",
+    originId: lote.origem_id,
+    createdAt: lote.created_at,
+    updatedAt: lote.updated_at,
+    galpao_id: lote.galpao_id,
+    gaiola_name: lote.gaiolas?.nome || lote.caixas_crescimento?.nome,
+    galpao_name: lote.galpoes?.nome,
+    aviary_name: lote.caixas_crescimento?.aviarios?.nome || lote.galpoes?.aviarios?.nome,
+    aviary_city: lote.caixas_crescimento?.aviarios?.cidade || lote.galpoes?.aviarios?.cidade,
+    aviaryId: lote.caixas_crescimento?.aviario_id || lote.galpoes?.aviario_id,
+    males: lote.males || 0,
+    females: lote.females || 0,
+    parentId: lote.parent_id,
+    location: lote.gaiolas?.nome || lote.caixas_crescimento?.nome || "Sem Local",
+    meta_mortalidade: lote.meta_mortalidade,
+    meta_producao_diaria: lote.meta_producao_diaria
+  };
 };
 
 export const batchesApi = {
   getAll: async (): Promise<Batch[]> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return loadBatches();
+    try {
+      // Fetch all lotes, assuming we want to filter by Growth/Crescimento context usually?
+      // Or we just fetch all and let frontend filter.
+      const lotes = await supabaseClient.get<any[]>("/lotes");
+      return lotes.map(mapLoteToBatch);
+    } catch (error) {
+      console.error("Error fetching batches:", error);
+      return [];
+    }
   },
 
   getById: async (id: string): Promise<Batch> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const batches = loadBatches();
-    const batch = batches.find(b => b.id === id);
-    if (!batch) throw new Error("Batch not found");
-    return batch;
+    const lote = await supabaseClient.get<any>(`/lotes/${id}`);
+    return mapLoteToBatch(lote);
   },
 
   getByCageId: async (cageId: string): Promise<Batch[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const batches = loadBatches();
-    return batches.filter(b => b.cageId === cageId);
+    const lotes = await supabaseClient.get<any[]>(`/lotes?gaiola_id=${cageId}`);
+    return lotes.map(mapLoteToBatch);
   },
 
   create: async (data: CreateBatchRequest): Promise<Batch> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const batches = loadBatches();
-    const newBatch: Batch = {
-      id: `batch-${Date.now()}`,
-      ...data,
-      status: "active",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    // Map Frontend 'Batch' to Backend 'Lote'
+    const payload = {
+      name: data.name,
+      linhagem: data.species,
+      quantidade: data.quantity,
+      data_nascimento: data.birthDate || new Date().toISOString(),
+      gaiola_id: data.cageId, // MUST be a UUID
+      status: 'ativo',
+      fase: data.phase,
+      origem_id: data.originId,
+      observacoes: data.notes,
+      males: data.males || 0,
+      females: data.females || 0,
+      parent_id: data.parentId,
+      meta_mortalidade: data.meta_mortalidade,
+      meta_producao_diaria: data.meta_producao_diaria
+      // history: data.history // If DB supports it
     };
-    batches.push(newBatch);
-    saveBatches(batches);
-    return newBatch;
+
+    // If cageId is provided, we should probably try to get the galpao_id from the cage first
+    // But for now let's hope the backend handles it or we send it if we knew it.
+    // The current LotesController.criar just inserts what we send.
+
+    const newLote = await supabaseClient.post<any>("/lotes", payload);
+    return mapLoteToBatch(newLote);
   },
 
   update: async (id: string, data: UpdateBatchRequest): Promise<Batch> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const batches = loadBatches();
-    const index = batches.findIndex(b => b.id === id);
-    if (index === -1) throw new Error("Batch not found");
+    const payload: any = {};
+    if (data.name) payload.name = data.name;
+    if (data.quantity !== undefined) payload.quantidade = data.quantity; // Allow 0
+    if (data.status) payload.status = data.status === 'active' ? 'ativo' : 'finalizado';
+    if (data.notes) payload.observacoes = data.notes;
+    if (data.cageId) payload.gaiola_id = data.cageId;
+    if (data.males !== undefined) payload.males = data.males;
+    if (data.females !== undefined) payload.females = data.females;
+    if (data.parentId) payload.parent_id = data.parentId;
+    if (data.meta_mortalidade !== undefined) payload.meta_mortalidade = data.meta_mortalidade;
+    if (data.meta_producao_diaria !== undefined) payload.meta_producao_diaria = data.meta_producao_diaria;
 
-    const updatedBatch = { ...batches[index], ...data, updatedAt: new Date().toISOString() };
-    batches[index] = updatedBatch;
-    saveBatches(batches);
-    return updatedBatch;
+    // History is complex. If backend has no history column, we can't save it directly.
+    // Ideally we append to notes or use audit_logs. For now, we enable notes to allow saving transfer summaries.
+
+    // Also trim ID to be safe
+    const cleanId = id.trim();
+
+    const updated = await supabaseClient.put<any>(`/lotes/${cleanId}`, payload);
+    return mapLoteToBatch(updated);
   },
 
   delete: async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    let batches = loadBatches();
-    batches = batches.filter(b => b.id !== id);
-    saveBatches(batches);
+    await supabaseClient.delete(`/lotes/${id}`);
   },
 
   generateQRCode: async (batchId: string): Promise<string> => {

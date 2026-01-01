@@ -10,14 +10,16 @@ import { groupsApi } from "@/api/groups";
 import { nanoid } from "nanoid";
 import { addDays, format } from "date-fns";
 
-export const useProduction = (groupId?: string) => {
+export const useProduction = (entityId?: string, isBatch: boolean = false) => {
   const queryClient = useQueryClient();
 
   const { data: productions = [], isLoading, error } = useQuery({
-    queryKey: groupId ? ["production", groupId] : ["production"],
+    queryKey: entityId ? ["production", entityId, isBatch] : ["production"],
     queryFn: () =>
-      groupId ? productionApi.getByGroupId(groupId) : productionApi.getAll(),
-    enabled: !groupId || !!groupId,
+      entityId ? (isBatch ? productionApi.getByBatchId(entityId) : productionApi.getByGroupId(entityId)) : productionApi.getAll(),
+    enabled: true,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const createMutation = useMutation({
@@ -50,6 +52,7 @@ export const useProduction = (groupId?: string) => {
             expectedHatchDate: expectedHatchDate,
             temperature: 37.5, // Default value
             humidity: 60, // Default value
+            species: 'Codorna', // Default if not specified
             notes: `Criado automaticamente a partir da produção do grupo ${data.groupId}`,
           };
 
@@ -62,7 +65,7 @@ export const useProduction = (groupId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["production", groupId] : ["production"],
+        queryKey: entityId ? ["production", entityId, isBatch] : ["production"],
       });
       // Invalidate incubation queries as well
       queryClient.invalidateQueries({ queryKey: ["incubation"] });
@@ -74,7 +77,7 @@ export const useProduction = (groupId?: string) => {
       productionApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["production", groupId] : ["production"],
+        queryKey: entityId ? ["production", entityId, isBatch] : ["production"],
       });
     },
   });
@@ -83,7 +86,7 @@ export const useProduction = (groupId?: string) => {
     mutationFn: (id: string) => productionApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["production", groupId] : ["production"],
+        queryKey: entityId ? ["production", entityId, isBatch] : ["production"],
       });
     },
   });
@@ -92,9 +95,9 @@ export const useProduction = (groupId?: string) => {
     productions,
     isLoading,
     error,
-    create: createMutation.mutate,
-    update: updateMutation.mutate,
-    delete: deleteMutation.mutate,
+    create: createMutation.mutateAsync,
+    update: updateMutation.mutateAsync,
+    delete: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,

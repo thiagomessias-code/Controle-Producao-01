@@ -37,15 +37,25 @@ export const useIncubation = () => {
     },
   });
 
+  const finalizeMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => // Type 'any' for now or define FinalizeRequest
+      incubationApi.finalize(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["incubation"] });
+    },
+  });
+
   return {
     incubations,
     isLoading,
     error,
     create: createMutation.mutateAsync,
     update: updateMutation.mutateAsync,
+    finalize: finalizeMutation.mutateAsync, // Expose finalize
     delete: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
+    isFinalizing: finalizeMutation.isPending, // Expose loading state
     isDeleting: deleteMutation.isPending,
   };
 };

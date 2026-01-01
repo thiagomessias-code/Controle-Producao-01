@@ -1,21 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { salesApi, Sale, CreateSaleRequest, UpdateSaleRequest } from "@/api/sales";
 
-export const useSales = (groupId?: string) => {
+export const useSales = (entityId?: string, isBatch: boolean = false) => {
   const queryClient = useQueryClient();
 
   const { data: sales = [], isLoading, error } = useQuery({
-    queryKey: groupId ? ["sales", groupId] : ["sales"],
+    queryKey: entityId ? ["sales", entityId, isBatch] : ["sales"],
     queryFn: () =>
-      groupId ? salesApi.getByGroupId(groupId) : salesApi.getAll(),
-    enabled: !groupId || !!groupId,
+      entityId ? salesApi.getByGroupId(entityId) : salesApi.getAll(),
+    enabled: !entityId || !!entityId,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: CreateSaleRequest) => salesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["sales", groupId] : ["sales"],
+        queryKey: entityId ? ["sales", entityId, isBatch] : ["sales"],
       });
     },
   });
@@ -25,7 +25,7 @@ export const useSales = (groupId?: string) => {
       salesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["sales", groupId] : ["sales"],
+        queryKey: entityId ? ["sales", entityId, isBatch] : ["sales"],
       });
     },
   });
@@ -34,7 +34,7 @@ export const useSales = (groupId?: string) => {
     mutationFn: (id: string) => salesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: groupId ? ["sales", groupId] : ["sales"],
+        queryKey: entityId ? ["sales", entityId, isBatch] : ["sales"],
       });
     },
   });

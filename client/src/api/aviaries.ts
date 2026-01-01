@@ -1,33 +1,36 @@
-import supabaseClient from "./supabaseClient";
+import { supabaseClient } from "./supabaseClient";
 
 export interface Aviary {
     id: string;
     name: string;
     capacity: number;
+    quantity: number;
     location: string;
     status: "active" | "inactive" | "maintenance";
 }
 
-// Mock Data for Aviaries
-const MOCK_AVIARIES: Aviary[] = [
-    {
-        id: "aviary-sp",
-        name: "Aviário São Paulo",
-        capacity: 100000,
-        location: "São Paulo",
-        status: "active"
-    }
-];
-
 export const aviariesApi = {
     getAll: async (): Promise<Aviary[]> => {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return MOCK_AVIARIES;
+        // Use direct path /aviarios if supabaseClient mapping is unreliable, 
+        // or rely on mapping if I add it.
+        // Let's use the Portuguese path directly to be safe and explicit.
+        const data = await supabaseClient.get<any[]>("/aviarios");
+        return data.map(mapAviaryFromBackend);
     },
 
     getById: async (id: string): Promise<Aviary | null> => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return MOCK_AVIARIES.find(a => a.id === id) || null;
+        const data = await supabaseClient.get<any>(`/aviarios/${id}`);
+        return mapAviaryFromBackend(data);
     }
+};
+
+const mapAviaryFromBackend = (data: any): Aviary => {
+    return {
+        id: data.id,
+        name: data.nome || data.name,
+        capacity: data.capacidade || data.capacity || 0,
+        quantity: data.quantidade_atual || data.quantity || 0,
+        location: data.cidade || data.localizacao || data.location || "Não informada",
+        status: (data.status === 1 || data.status === 'ativo' || data.status === 'active') ? 'active' : 'inactive'
+    };
 };

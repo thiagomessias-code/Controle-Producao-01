@@ -8,11 +8,17 @@ import { useGroups } from "@/hooks/useGroups";
 export default function GroupCreate() {
     const [, setLocation] = useLocation();
     const { create, isCreating } = useGroups();
+
+    // Get aviaryId from query params
+    const searchParams = new URLSearchParams(window.location.search);
+    const aviaryIdParam = searchParams.get('aviaryId');
+
     const [formData, setFormData] = useState({
         name: "",
         type: "production",
         capacity: "",
         description: "",
+        aviaryId: aviaryIdParam || "", // Pre-fill
     });
     const [error, setError] = useState("");
 
@@ -33,11 +39,19 @@ export default function GroupCreate() {
         try {
             await create({
                 name: formData.name,
-                type: formData.type as "production" | "males" | "breeders",
+                type: formData.type as "production" | "males" | "breeders", // Ensure valid type
                 capacity: parseInt(formData.capacity),
-                description: formData.description,
+                location: formData.description, // Mapping description to location/notes if needed or custom field
+                // Note: api/groups expects 'location'. Let's use description as location for now or empty.
+                species: "chicken", // Default
+                aviaryId: formData.aviaryId,
             });
-            setLocation("/groups");
+            // Redirect back to aviary if available
+            if (formData.aviaryId) {
+                setLocation(`/aviaries/${formData.aviaryId}`);
+            } else {
+                setLocation("/groups");
+            }
         } catch (err) {
             setError("Erro ao criar galpão/grupo");
         }
@@ -88,9 +102,10 @@ export default function GroupCreate() {
                                     disabled={isCreating}
                                     className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
                                 >
-                                    <option value="production">Produção (Postura)</option>
-                                    <option value="males">Machos</option>
-                                    <option value="breeders">Reprodutoras</option>
+                                    <option value="production">Galinhas Poedeiras (Postura)</option>
+                                    <option value="males">Machos (Reprodução)</option>
+                                    <option value="breeders">Matrizes (Reprodutoras)</option>
+                                    <option value="chicks">Pintos (Crescimento)</option>
                                 </select>
                             </div>
 

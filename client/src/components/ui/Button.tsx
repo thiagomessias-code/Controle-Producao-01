@@ -18,24 +18,24 @@ const Button = ({
   ...props
 }: ButtonProps) => {
   const baseStyles =
-    "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center justify-center font-bold rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95";
 
   const variantStyles = {
     primary:
-      "bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary",
+      "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-orange-200 focus:ring-primary",
     secondary:
-      "bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-secondary",
+      "bg-orange-50 text-orange-700 hover:bg-orange-100 focus:ring-orange-200",
     outline:
-      "border-2 border-primary text-primary hover:bg-primary/10 focus:ring-primary",
-    ghost: "text-primary hover:bg-primary/10 focus:ring-primary",
+      "border-2 border-primary text-primary hover:bg-orange-50 focus:ring-primary",
+    ghost: "text-primary hover:bg-orange-50 focus:ring-primary",
     destructive:
-      "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-destructive",
+      "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-red-100 focus:ring-destructive",
   };
 
   const sizeStyles = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-base",
-    lg: "px-6 py-3 text-lg",
+    sm: "px-4 py-2 text-sm",
+    md: "px-6 py-3 text-base",
+    lg: "px-8 py-4 text-lg",
   };
 
   return (

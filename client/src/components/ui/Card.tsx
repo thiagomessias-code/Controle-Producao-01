@@ -17,8 +17,8 @@ export const Card = ({
   return (
     <div
       className={clsx(
-        "bg-card text-card-foreground rounded-lg border border-border p-6 shadow-sm",
-        hoverable && "cursor-pointer hover:shadow-md transition-shadow duration-200",
+        "bg-white text-card-foreground rounded-2xl border border-orange-200/50 p-6 shadow-md shadow-orange-100/20",
+        hoverable && "cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300",
         className
       )}
       onClick={onClick}

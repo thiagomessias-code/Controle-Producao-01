@@ -4,14 +4,17 @@ import Button from "./Button";
 interface QRCodeScannerProps {
   onScan: (data: string) => void;
   onClose: () => void;
+  onManualInput?: () => void;
   title?: string;
 }
 
 export default function QRCodeScanner({
   onScan,
   onClose,
+  onManualInput,
   title = "Escanear QR Code",
-}: QRCodeScannerProps) {
+  mockResult
+}: QRCodeScannerProps & { mockResult?: string }) {
   const [isScanning, setIsScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,20 +58,21 @@ export default function QRCodeScanner({
     canvasRef.current.height = videoRef.current.videoHeight;
     context.drawImage(videoRef.current, 0, 0);
 
-    // Mock QR Code detection
+    // Mock QR Code detection or Use provided Mock Result
     // In production, you would use a library like jsQR or zxing-js
-    const mockData = JSON.stringify({
+    const result = mockResult || JSON.stringify({
       groupId: `group_${Date.now()}`,
       name: "Grupo Mock",
       species: "Codorna",
-      quantity: 100,
+      quantity: 100, // Default mock
     });
 
-    onScan(mockData);
+    onScan(result);
   };
 
   const handleManualInput = () => {
-    onClose();
+    if (onManualInput) onManualInput();
+    else onClose();
   };
 
   return (

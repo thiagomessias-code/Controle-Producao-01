@@ -36,22 +36,17 @@ interface AppState {
   addTodo: (task: string, dueDate: string, isAutomatic: boolean) => void;
   toggleTodo: (id: string) => void;
   removeTodo: (id: string) => void;
+  clearAllTasks: () => void;
 }
 
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      sidebarOpen: true,
+      sidebarOpen: false,
       theme: "light",
       notifications: [],
       pendingTasks: [],
-      todos: [
-        { id: "task-1", task: "Coleta de ovos", dueDate: new Date().toISOString(), isCompleted: false, isAutomatic: true },
-        { id: "task-2", task: "Alimentação", dueDate: new Date().toISOString(), isCompleted: false, isAutomatic: true },
-        { id: "task-3", task: "Limpeza", dueDate: new Date().toISOString(), isCompleted: false, isAutomatic: true },
-        { id: "task-4", task: "Água", dueDate: new Date().toISOString(), isCompleted: false, isAutomatic: true },
-        { id: "task-5", task: "Outros cuidados diários", dueDate: new Date().toISOString(), isCompleted: false, isAutomatic: true },
-      ],
+      todos: [],
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setTheme: (theme) => set({ theme }),
       addNotification: (message, type) =>
@@ -108,9 +103,20 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           todos: state.todos.filter((todo) => todo.id !== id),
         })),
+      clearAllTasks: () =>
+        set(() => ({
+          pendingTasks: [],
+          todos: [],
+        })),
     }),
     {
       name: "app-store",
+      partialize: (state) => ({
+        theme: state.theme,
+        notifications: state.notifications,
+        pendingTasks: state.pendingTasks,
+        todos: state.todos,
+      }),
     }
   )
 );

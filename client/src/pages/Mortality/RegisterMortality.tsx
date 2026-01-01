@@ -1,37 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
+import QRCodeScanner from "@/components/ui/QRCodeScanner";
 import { useMortality } from "@/hooks/useMortality";
+import { useBatches } from "@/hooks/useBatches";
 import { useGroups } from "@/hooks/useGroups";
+import { cagesApi } from "@/api/cages";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useCages } from "@/hooks/useCages";
-import QRCodeScanner from "@/components/ui/QRCodeScanner";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function RegisterMortality() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const { groups, update: updateGroup } = useGroups();
+  const { groups } = useGroups();
   const { create, isCreating } = useMortality();
+  const { batches, update: updateBatch } = useBatches();
 
   const { addInventory } = useWarehouse();
   const { cages } = useCages();
   const [showScanner, setShowScanner] = useState(true);
 
+  // Form State
   const [formData, setFormData] = useState({
     groupId: "",
     cageId: "",
     date: new Date().toISOString().split("T")[0],
     quantity: "",
-    cause: "Doença", // Default
+    cause: "Doença",
     notes: "",
   });
   const [error, setError] = useState("");
+
+  // No manual batch detection needed - we use FIFO on submit
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
+  };
+
+  const handleCageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cageId = e.target.value;
+    setFormData(prev => ({ ...prev, cageId }));
   };
 
   const handleQRCodeScan = (data: string) => {
@@ -51,77 +65,132 @@ export default function RegisterMortality() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.groupId || !formData.date || !formData.quantity || !formData.cause) {
-      setError("Por favor, preencha todos os campos obrigatórios");
+    const qtyRequested = parseInt(formData.quantity);
+    if (qtyRequested <= 0) {
+      setError("Quantidade deve ser maior que zero");
       return;
     }
 
-    const qty = parseInt(formData.quantity);
-    const selectedGroup = groups.find((g: any) => g.id === formData.groupId);
+    // 1. Find all active batches in the cage and sort by birthDate (FIFO: oldest first)
+    const activeBatchesInCage = batches
+      ?.filter((b: any) => b.cageId === formData.cageId && b.status === "active")
+      .sort((a, b) => {
+        const dateA = new Date(a.birthDate || a.createdAt || 0).getTime();
+        const dateB = new Date(b.birthDate || b.createdAt || 0).getTime();
+        return dateA - dateB;
+      }) || [];
 
-    if (!selectedGroup) {
-      setError("Grupo não encontrado");
+    const totalAvailable = activeBatchesInCage.reduce((acc, b) => acc + (b.quantity || 0), 0);
+
+    if (activeBatchesInCage.length === 0) {
+      setError("Nenhum lote ativo detectado nesta gaiola.");
+      return;
+    }
+
+    if (qtyRequested > totalAvailable) {
+      setError(`Quantidade (${qtyRequested}) excede o saldo total da gaiola (${totalAvailable})`);
       return;
     }
 
     try {
-      // 1. Create Mortality/Slaughter Record
-      await create({
-        groupId: formData.groupId,
-        cageId: formData.cageId,
-        date: formData.date,
-        quantity: qty,
-        cause: formData.cause,
-        notes: formData.notes,
-      });
+      let remainingToDeduct = qtyRequested;
 
-      // 2. Update Group Quantity and History
-      const newHistory = [
-        ...(selectedGroup.history || []),
-        {
-          date: new Date().toISOString(),
-          event: formData.cause === "Abate" ? "Abate" : "Mortalidade",
-          quantity: qty,
-          details: `Causa: ${formData.cause}. ${formData.notes || ""}`
+      // 2. FIFO Loop: Deduct from oldest batches first
+      for (const batch of activeBatchesInCage) {
+        if (remainingToDeduct <= 0) break;
+
+        const deductionFromThisBatch = Math.min(batch.quantity, remainingToDeduct);
+        const newBatchQty = batch.quantity - deductionFromThisBatch;
+
+        // Determine if batch is finished (0 birds)
+        const isFinished = newBatchQty <= 0;
+
+        // Create Mortality Record (Always, for history)
+        await create({
+          groupId: formData.groupId,
+          cageId: formData.cageId,
+          batchId: batch.id,
+          date: formData.date,
+          quantity: deductionFromThisBatch,
+          cause: formData.cause,
+          notes: `${formData.notes}${activeBatchesInCage.length > 1 ? ` (FIFO Lote #${batch.batchNumber})` : ''}`,
+          userId: user?.id
+        });
+
+        // Handle Slaughter (Specific for Abate)
+        if (formData.cause === "Abate") {
+          const date = new Date(formData.date);
+          date.setDate(date.getDate() + 5);
+          const expirationDate = date.toISOString().split("T")[0];
+
+          await addInventory({
+            type: "meat",
+            subtype: `Abate - ${batch.species || 'Codorna'}`,
+            quantity: deductionFromThisBatch,
+            origin: {
+              groupId: formData.groupId,
+              batchId: batch.id,
+              cageId: formData.cageId,
+              date: formData.date
+            },
+            expirationDate
+          });
         }
-      ];
 
-      // 3. If Slaughter (Abate), add to Warehouse
-      if (formData.cause === "Abate") {
-        await addInventory({
-          type: "meat",
-          subtype: "codorna abatida",
-          quantity: qty,
-          origin: {
-            groupId: formData.groupId,
-            batchId: selectedGroup.batchId, // Traceability
-            date: formData.date
+        // b) Update Batch: History and New Quantity
+        const newHistory = [
+          ...(batch.history || []),
+          {
+            date: new Date().toISOString(),
+            event: formData.cause === "Abate" ? "Abate (Saída)" : `Mortalidade (${formData.cause})`,
+            quantity: deductionFromThisBatch,
+            details: `${formData.cause === "Abate" ? "Abate para o armazém." : formData.notes}. Registrado por ${user?.name || "Sistema"}`,
+            origin: batch.id
           }
+        ];
+
+        await updateBatch({
+          id: batch.id,
+          data: {
+            quantity: newBatchQty,
+            status: isFinished ? "inactive" : "active", // Finalize if zero
+            history: newHistory
+          }
+        });
+
+        remainingToDeduct -= deductionFromThisBatch;
+      }
+
+      // 3. Sync Cage Quantity (Total deduction across all batches)
+      const currentCage = cages.find((c) => c.id === formData.cageId);
+      if (currentCage) {
+        await cagesApi.update(currentCage.id, {
+          currentQuantity: Math.max(0, currentCage.currentQuantity - qtyRequested)
         });
       }
 
-      await updateGroup({
-        id: formData.groupId,
-        data: {
-          quantity: selectedGroup.quantity - qty,
-          history: newHistory
-        }
-      });
-
-      alert(`Registro de ${formData.cause} realizado com sucesso!`);
+      toast.success("Registro concluído e estoque atualizado!");
       setLocation("/mortality");
     } catch (err) {
-      setError("Erro ao registrar abatimento/mortalidade");
+      console.error(err);
+      toast.error("Erro ao registrar abatimento.");
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Registrar Abatimentos</h1>
-        <p className="text-muted-foreground mt-1">
-          Registre óbitos ou abates para o armazém
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+            ⬅️ Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Registrar Abatimentos</h1>
+            <p className="text-muted-foreground mt-1">
+              Registre óbitos ou abates para o armazém
+            </p>
+          </div>
+        </div>
       </div>
 
       {showScanner && (
@@ -149,24 +218,29 @@ export default function RegisterMortality() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Grupo *
+                Grupo (Galpão) *
               </label>
               <div className="flex gap-2">
                 <select
                   name="groupId"
                   value={formData.groupId}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const newGroupId = e.target.value;
+                    setFormData(prev => ({
+                      ...prev,
+                      groupId: newGroupId,
+                      cageId: ""
+                    }));
+                  }}
                   disabled={isCreating}
                   className="flex-1 px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
                 >
-                  <option value="">Selecione um grupo</option>
-                  {groups
-                    .filter((group: any) => group.status === "active")
-                    .map((group: any) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name} - {group.location} ({group.species})
-                      </option>
-                    ))}
+                  <option value="">Selecione um grupo...</option>
+                  {groups?.map((group: any) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({group.type})
+                    </option>
+                  ))}
                 </select>
                 <Button
                   type="button"
@@ -187,7 +261,7 @@ export default function RegisterMortality() {
               <select
                 name="cageId"
                 value={formData.cageId}
-                onChange={handleChange}
+                onChange={handleCageChange}
                 disabled={isCreating || !formData.groupId}
                 required
                 className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50"
@@ -202,6 +276,7 @@ export default function RegisterMortality() {
                   ))}
               </select>
             </div>
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
@@ -269,7 +344,7 @@ export default function RegisterMortality() {
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={() => setLocation("/mortality")}
+                onClick={() => window.history.back()}
                 disabled={isCreating}
               >
                 Cancelar

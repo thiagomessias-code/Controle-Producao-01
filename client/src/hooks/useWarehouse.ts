@@ -24,7 +24,7 @@ export function useWarehouse() {
         fetchInventory();
     }, []);
 
-    const addInventory = async (item: Omit<InventoryItem, "id" | "createdAt" | "expirationDate" | "history" | "status">) => {
+    const addInventory = async (item: Omit<InventoryItem, "id" | "createdAt" | "history" | "status">) => {
         try {
             const newItem = await warehouseApi.addInventory(item);
             setInventory((prev) => [...prev, newItem]);
@@ -35,10 +35,11 @@ export function useWarehouse() {
         }
     };
 
-    const processSale = async (type: "egg" | "meat", subtype: string, quantity: number) => {
+    const processSale = async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda") => {
         try {
-            await warehouseApi.processSale(type, subtype, quantity);
+            const results = await warehouseApi.processSale(type, subtype, quantity, context);
             await fetchInventory(); // Refresh to show updated quantities
+            return results;
         } catch (err) {
             setError("Erro ao processar venda no estoque");
             throw err;

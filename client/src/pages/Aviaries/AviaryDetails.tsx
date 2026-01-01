@@ -105,12 +105,30 @@ export default function AviaryDetails() {
                                             {group.description || "Setor de produção avícola."}
                                         </p>
 
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                            <div className="text-xs text-gray-500 font-medium">
-                                                Capacidade: <span className="text-gray-900 font-bold text-sm">{formatQuantity(group.capacity || 0)}</span>
+                                        <div className="space-y-2 pt-2 border-t border-gray-100">
+                                            <div className="flex justify-between items-end mb-1">
+                                                <div>
+                                                    <p className="text-xs text-gray-500 font-medium uppercase">Ocupação</p>
+                                                    <p className="text-lg font-bold text-gray-900">
+                                                        {formatQuantity(group.quantity || 0)} <span className="text-xs text-gray-400 font-normal">/ {formatQuantity(group.capacity || 0)} aves</span>
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className={`text-xs font-bold ${((group.quantity || 0) / (group.capacity || 1)) >= 0.9 ? 'text-red-600' : 'text-green-600'}`}>
+                                                        {(((group.quantity || 0) / (group.capacity || 1)) * 100).toFixed(1)}%
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center text-blue-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
-                                                Ver Gaiolas ➡️
+                                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                                <div
+                                                    className={`h-1.5 rounded-full transition-all duration-500 ${((group.quantity || 0) / (group.capacity || 1)) >= 0.9 ? "bg-red-500" :
+                                                        ((group.quantity || 0) / (group.capacity || 1)) >= 0.7 ? "bg-amber-500" : "bg-green-500"
+                                                        }`}
+                                                    style={{ width: `${Math.min(((group.quantity || 0) / (group.capacity || 1)) * 100, 100)}%` }}
+                                                ></div>
+                                            </div>
+                                            <div className="flex items-center justify-end text-blue-600 text-xs font-bold group-hover:translate-x-1 transition-transform pt-1">
+                                                Gerenciar Gaiolas ➡️
                                             </div>
                                         </div>
                                     </div>

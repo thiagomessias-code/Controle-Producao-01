@@ -1,11 +1,14 @@
-import { Route, Switch } from "wouter";
+import { Route, Switch, Redirect } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import AppContainer from "@/components/layout/AppContainer";
 import Loading from "@/components/ui/Loading";
 
 // Auth Pages
 import Login from "@/pages/Auth/Login";
+import Signup from "@/pages/Auth/Signup";
 import Preload from "@/pages/Auth/Preload";
+import ForgotPassword from "@/pages/Auth/ForgotPassword";
+import { ChangePassword } from '@/pages/auth/ChangePassword';
 
 // App Pages
 import Home from "@/pages/Home/Home";
@@ -58,11 +61,32 @@ import TaskList from "@/pages/Tasks/TaskList";
 import WarehouseDashboard from "@/pages/Warehouse/WarehouseDashboard";
 import StockDetails from "@/pages/Warehouse/StockDetails";
 
+
+
+// Admin Imports
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminDashboard } from "@/pages/admin/dashboard/AdminDashboard";
+import { AviariosList } from "@/pages/admin/aviarios/AviariosList";
+import { AdminGroups } from "@/pages/admin/grupos/AdminGroups";
+import { AdminCages } from "@/pages/admin/gaiolas/AdminCages";
+import { AdminUsers } from "@/pages/admin/usuarios/AdminUsers";
+import { AdminFinancial } from "@/pages/admin/financeiro/AdminFinancial";
+import { AdminProducts } from "@/pages/admin/financeiro/AdminProducts";
+import { AdminReports } from "@/pages/admin/relatorios/AdminReports";
+import { AdminFeed } from "@/pages/admin/feed/AdminFeed";
+import { AdminLotes } from "@/pages/admin/lotes/AdminLotes";
+import { AdminNotifications } from "@/pages/admin/notifications/AdminNotifications";
+import { AdminIncubation } from "@/pages/admin/incubation/AdminIncubation";
+import { AdminGrowthBoxes } from "@/pages/admin/caixas/AdminGrowthBoxes";
+import { AdminStock } from "@/pages/admin/stock/AdminStock";
+import { AdminCosts } from "@/pages/admin/relatorios/AdminCosts";
+
+
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <Loading fullScreen message="Carregando..." />;
+    return <Loading fullScreen message="Verificando acesso..." />;
   }
 
   if (!isAuthenticated) {
@@ -74,19 +98,73 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 }
 
 export default function AppRoutes() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
+  // 1. Initial Loading State
   if (isLoading) {
     return <Preload />;
   }
 
+  // 2. Mandatory Password Change
+  if (isAuthenticated && user?.change_password_required) {
+    return (
+      <Switch>
+        <Route path="/change-password" component={ChangePassword} />
+        <Route path="/:rest*" component={() => <Redirect to="/change-password" />} />
+      </Switch>
+    );
+  }
+
+  // 3. Main Router
   return (
     <Switch>
       {/* Auth Routes */}
       <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route path="/preload" component={Preload} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/change-password" component={ChangePassword} />
 
-      {/* Protected Routes */}
+      {/* Admin Routes */}
+      <Route path="/admin">
+        {isAuthenticated && user?.role === 'admin' ? (
+          <AdminLayout>
+            <AdminDashboard />
+          </AdminLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
+      </Route>
+
+      <Route path="/admin/:rest*">
+        {isAuthenticated && user?.role === 'admin' ? (
+          <AdminLayout>
+            <Switch>
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/" component={AdminDashboard} />
+              <Route path="/admin/aviarios" component={AviariosList} />
+              <Route path="/admin/grupos" component={AdminGroups} />
+              <Route path="/admin/gaiolas" component={AdminCages} />
+              <Route path="/admin/usuarios" component={AdminUsers} />
+              <Route path="/admin/financeiro" component={AdminFinancial} />
+              <Route path="/admin/produtos" component={AdminProducts} />
+              <Route path="/admin/incubacao" component={AdminIncubation} />
+              <Route path="/admin/alimentacao" component={AdminFeed} />
+              <Route path="/admin/lotes" component={AdminLotes} />
+              <Route path="/admin/estoque" component={AdminStock} />
+              <Route path="/admin/caixas-crescimento" component={AdminGrowthBoxes} />
+              <Route path="/admin/notificacoes" component={AdminNotifications} />
+              <Route path="/admin/relatorios" component={AdminReports} />
+              <Route path="/admin/custos" component={AdminCosts} />
+              <Route component={() => <div className="p-4">Página Admin não encontrada</div>} />
+            </Switch>
+          </AdminLayout>
+        ) : (
+          <Redirect to="/login" />
+        )}
+      </Route>
+
+      {/* App Routes */}
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
       <Route path="/notifications" component={() => <ProtectedRoute component={NotificationsPage} />} />
@@ -94,8 +172,6 @@ export default function AppRoutes() {
       {/* Aviary Routes */}
       <Route path="/aviaries" component={() => <ProtectedRoute component={AviaryList} />} />
       <Route path="/aviaries/:id" component={() => <ProtectedRoute component={AviaryDetails} />} />
-
-      {/* Groups (Sheds) Routes - Kept for direct access if needed, but hierarchy starts at /aviaries */}
       <Route path="/groups" component={() => { window.location.href = "/aviaries"; return null; }} />
       <Route path="/groups/create" component={() => <ProtectedRoute component={GroupCreate} />} />
       <Route path="/groups/:id" component={() => <ProtectedRoute component={GroupDetails} />} />
@@ -106,10 +182,7 @@ export default function AppRoutes() {
       <Route path="/batches/:id" component={() => <ProtectedRoute component={BatchDetails} />} />
       <Route path="/batches/:id/edit" component={() => <ProtectedRoute component={BatchEdit} />} />
       <Route path="/batches/:id/qrcode" component={() => <ProtectedRoute component={BatchQRCode} />} />
-
-      {/* Legacy/Redirects - Optional: keep /groups/growth pointing to GrowthBoxList if needed, but better to move to /batches */}
       <Route path="/groups/growth" component={() => <ProtectedRoute component={GrowthBoxList} />} />
-
 
       {/* Production Routes */}
       <Route path="/production" component={() => <ProtectedRoute component={ProductionHistory} />} />
@@ -123,7 +196,7 @@ export default function AppRoutes() {
       <Route path="/incubation/:id" component={() => <ProtectedRoute component={IncubationDetails} />} />
 
       {/* Mortality Routes */}
-      <Route path="/mortality" component={() => <ProtectedRoute component={MortalityHistory} />} />
+      <Route path="/mortality" component={() => <ProtectedRoute component={ProductionHistory} />} />
       <Route path="/mortality/register" component={() => <ProtectedRoute component={RegisterMortality} />} />
 
       {/* Feed Routes */}
@@ -146,3 +219,4 @@ export default function AppRoutes() {
     </Switch>
   );
 }
+

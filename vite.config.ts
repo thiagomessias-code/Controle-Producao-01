@@ -51,7 +51,7 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  envDir: path.resolve(__dirname),
+  envDir: path.resolve(__dirname, "client"),
   root: path.resolve(__dirname, "client"),
   publicDir: path.resolve(__dirname, "client/public"),
   build: {

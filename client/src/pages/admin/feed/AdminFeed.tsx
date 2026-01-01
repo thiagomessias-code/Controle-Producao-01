@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ShoppingBag, Plus, Trash2, Edit, Save, Settings } from 'lucide-react';
 import { feedApi, FeedType, FeedConfiguration, FeedConsumption } from '@/api/feed';
 import Input from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/format";
 import { useAuth } from '@/hooks/useAuth';

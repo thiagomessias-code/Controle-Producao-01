@@ -139,7 +139,7 @@ export const AviariosList: React.FC = () => {
                 name: cageForm.nome,
                 groupId: cageModal.groupId,
                 capacity: cageForm.capacity,
-                status: 'ativo'
+                status: 'active'
             };
             if (cageModal.editingId) {
                 await supabaseClient.put(`/cages/${cageModal.editingId}`, payload);

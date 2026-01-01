@@ -15,7 +15,7 @@ import { useAppStore } from "@/hooks/useAppStore";
 import { formatDate } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import { feedApi, FeedType, FeedConfiguration } from "@/api/feed";
-import { Label } from "@/components/ui/Label";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { caixasApi, GrowthBox } from "@/api/caixas";
 

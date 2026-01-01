@@ -3,7 +3,7 @@ import { supabaseClient } from '@/api/supabaseClient';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import QRCodeModal from '@/components/ui/QRCodeModal';
 import { HistoryModal } from '@/components/ui/HistoryModal';
@@ -49,7 +49,7 @@ export const AdminCages: React.FC = () => {
                 name: formData.nome || "Nova Gaiola",
                 groupId: formData.galpao_id || "",
                 capacity: formData.capacity || 6,
-                status: "ativo" as const
+                status: "active" as const
             };
 
             if (editingId) {

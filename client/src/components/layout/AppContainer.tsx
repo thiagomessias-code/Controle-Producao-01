@@ -15,9 +15,8 @@ export default function AppContainer({ children }: AppContainerProps) {
       <Header />
       <Sidebar />
       <main
-        className={`transition-all duration-300 ${
-          sidebarOpen ? "ml-64" : "ml-0"
-        } pt-16`}
+        className={`transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-0"
+          } pt-16 overflow-x-hidden`}
       >
         <div className="p-6 max-w-7xl mx-auto">
           {children}

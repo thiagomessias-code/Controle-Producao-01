@@ -72,11 +72,14 @@ export default function Login() {
                 className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md animate-in fade-in zoom-in duration-500"
               />
             </div>
-            <CardTitle className="text-3xl font-black text-gray-900 tracking-tight">
-              Acesso Restrito
+            <CardTitle className="text-3xl font-black text-gray-900 tracking-tight text-center">
+              Codornas do Sertão
             </CardTitle>
+            <div className="px-4 py-1 bg-orange-100 text-orange-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-200">
+              Acesso Restrito
+            </div>
             <CardDescription className="text-gray-500 font-medium text-center max-w-[250px]">
-              Gerencie sua produção com a excelência das Codornas do Sertão
+              Sistema de Gestão de Produção e Manejo
             </CardDescription>
           </div>
         </CardHeader>
@@ -95,10 +98,10 @@ export default function Login() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-bold ml-1">E-mail Corporativo</FormLabel>
+                    <FormLabel className="text-gray-700 font-bold ml-1">E-mail</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="nome@empresa.com"
+                        placeholder="seu@email.com"
                         {...field}
                         disabled={isLoading}
                         className="rounded-xl border-2 border-gray-100 focus:border-orange-500 focus:ring-orange-200 h-12 transition-all"
@@ -114,7 +117,7 @@ export default function Login() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-gray-700 font-bold ml-1">Senha de Acesso</FormLabel>
+                    <FormLabel className="text-gray-700 font-bold ml-1">Senha</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
@@ -139,30 +142,13 @@ export default function Login() {
                 Entrar no Sistema
               </Button>
 
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-100"></span>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-400 font-bold tracking-widest">OU</span>
-                </div>
-              </div>
-
-              <div className="text-center space-y-3">
+              <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={() => setLocation("/forgot-password")}
                   className="text-gray-400 hover:text-orange-600 font-medium text-xs transition-colors block mx-auto"
                 >
                   Esqueci minha senha
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setLocation("/signup")}
-                  className="text-orange-600 hover:text-orange-700 font-bold text-sm transition-colors decoration-2 hover:underline underline-offset-4"
-                >
-                  Solicitar Acesso (Criar Conta)
                 </button>
               </div>
             </form>

@@ -8,7 +8,8 @@ import { useCages } from "@/hooks/useCages";
 import { useGroups } from "@/hooks/useGroups";
 import { computeFeedType } from "@/utils/feed";
 import { formatQuantity } from "@/utils/format";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime } from "@/utils/date";
+import QRCodeScanner from "@/components/ui/QRCodeScanner";
 
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -76,21 +77,28 @@ export default function CageDetails() {
 
     const handleQRScan = (data: string) => {
         try {
-            const parsed = JSON.parse(data);
-            // Assuming QR contains { cageId: "..." } or similar
-            if (parsed.cageId) {
-                const targetCage = cages.find(c => c.id === parsed.cageId);
+            let targetCageId = "";
+
+            if (data.startsWith("GAIOLA:")) {
+                targetCageId = data.replace("GAIOLA:", "");
+            } else {
+                const parsed = JSON.parse(data);
+                targetCageId = parsed.cageId || parsed.id;
+            }
+
+            if (targetCageId) {
+                const targetCage = cages.find(c => c.id === targetCageId);
                 if (targetCage) {
                     setSelectedGroupId(targetCage.groupId);
                     setTransferData(prev => ({ ...prev, targetCageId: targetCage.id }));
                     setShowQRScanner(false);
-                    alert(`Gaiola ${targetCage.name} selecionada via QR Code!`);
+                    toast.success(`Gaiola ${targetCage.name} selecionada!`);
                 } else {
-                    alert("Gaiola não encontrada.");
+                    toast.error("Gaiola não encontrada.");
                 }
             }
         } catch (e) {
-            alert("QR Code inválido.");
+            toast.error("QR Code inválido.");
         }
     };
 
@@ -157,7 +165,7 @@ export default function CageDetails() {
 
             // 2. Update Source Cage (Quantity)
             await updateCage({
-                id: cageId,
+                id: cageId || "",
                 data: {
                     currentQuantity: cage.currentQuantity - qty
                 }
@@ -259,7 +267,7 @@ export default function CageDetails() {
 
             // 2. Update Cage
             await updateCage({
-                id: cageId,
+                id: cageId || "",
                 data: {
                     currentQuantity: (cage?.currentQuantity || 0) - qty
                 }
@@ -344,7 +352,7 @@ export default function CageDetails() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg">Ocupação</CardTitle>
@@ -408,24 +416,24 @@ export default function CageDetails() {
             </div>
 
             {activeGroup && (
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     <Button
                         variant="primary"
-                        className="flex-1 bg-red-600 hover:bg-red-700"
+                        className="flex-1 bg-red-600 hover:bg-red-700 py-6 sm:py-2"
                         onClick={() => setIsMortalityModalOpen(true)}
                     >
-                        💀 Registrar Mortalidade
+                        💀 Mortalidade
                     </Button>
                     <Button
                         variant="primary"
-                        className="flex-1 bg-amber-600 hover:bg-amber-700"
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 py-6 sm:py-2"
                         onClick={() => setIsFeedModalOpen(true)}
                     >
-                        🌾 Registrar Alimentação
+                        🌾 Alimentação
                     </Button>
                     <Button
                         variant="primary"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 py-6 sm:py-2"
                         onClick={() => setIsTransferModalOpen(true)}
                     >
                         🔄 Transferir
@@ -434,9 +442,9 @@ export default function CageDetails() {
             )}
 
             {activeGroup && activeGroup.history && (
-                <Card>
+                <Card className="border-2">
                     <CardHeader>
-                        <CardTitle>Histórico do Lote na Gaiola</CardTitle>
+                        <CardTitle>Histórico do Lote</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
@@ -444,11 +452,11 @@ export default function CageDetails() {
                                 <div key={index} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
                                     <div>
                                         <p className="font-semibold text-sm">{event.event}</p>
-                                        <p className="text-xs text-muted-foreground">{formatDate(event.date)}</p>
-                                        {event.details && <p className="text-xs text-gray-600 mt-1">{event.details}</p>}
+                                        <p className="text-[10px] text-muted-foreground">{formatDateTime(event.date)}</p>
+                                        {event.details && <p className="text-[11px] text-gray-600 mt-1 italic">{event.details}</p>}
                                     </div>
                                     {event.quantity > 0 && (
-                                        <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg font-bold">
                                             {event.event.includes("Mortalidade") ? "-" : ""}{event.quantity}
                                         </span>
                                     )}

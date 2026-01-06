@@ -19,8 +19,9 @@ export class ApiClient {
   private api: AxiosInstance;
 
   constructor() {
+    const baseURL = import.meta.env.VITE_API_URL || '/api';
     this.api = axios.create({
-      baseURL: '/api'
+      baseURL
     });
 
     this.api.interceptors.request.use(config => {

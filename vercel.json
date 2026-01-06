@@ -7,7 +7,7 @@
             "destination": "https://controle-producao-backend-1.onrender.com/api/$1"
         },
         {
-            "source": "/((?!assets/|favicon.ico|sw.js|manifest.webmanifest|icon-|logo.jpg|warehouse.png).*)",
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]

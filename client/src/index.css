@@ -124,6 +124,13 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
+  body {
+    @apply overflow-x-hidden relative;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
   body {
     @apply bg-background text-foreground;
   }

@@ -143,11 +143,11 @@ export default function FeedUsage() {
       // For growth boxes, the type is always 'crescimento'
       type = 'crescimento';
     } else if (formData.cageId) {
-      const cage = cages.find(c => c.id === formData.cageId);
+      const cage = cages.find(c => String(c.id) === String(formData.cageId));
       if (cage) {
-        const group = groups.find(g => g.id === cage.groupId);
+        const group = groups.find(g => String(g.id) === String(cage.groupId));
         if (group && group.type) {
-          console.log("DEBUG: Cage parent group type before normalization:", group.type);
+          console.log("FEED AUTOFILL DEBUG: Cage parent group type before normalization:", group.type);
           // Normalized type mapping (must match AdminFeed.tsx keys)
           let normalizedType = group.type.toLowerCase();
           if (normalizedType.includes('prod') || normalizedType.includes('postura')) normalizedType = 'production';
@@ -155,8 +155,13 @@ export default function FeedUsage() {
           else if (normalizedType.includes('reprod')) normalizedType = 'breeders';
           else if (normalizedType.includes('cresci')) normalizedType = 'crescimento';
           type = normalizedType;
-        } else {
-          console.log("DEBUG: Cage found but parent group or group type missing:", { cage, group });
+        } else if (group) {
+          // Fallback to group name if type is missing? 
+          const groupName = group.name.toLowerCase();
+          if (groupName.includes('prod') || groupName.includes('postura')) type = 'production';
+          else if (groupName.includes('macho')) type = 'males';
+          else if (groupName.includes('reprod')) type = 'breeders';
+          else if (groupName.includes('cresci')) type = 'crescimento';
         }
       }
     }
@@ -268,8 +273,8 @@ export default function FeedUsage() {
   // Auto-detect batch for Production Mode (Cage selected)
   useEffect(() => {
     if (!isGrowthBox && formData.cageId) {
-      const activeBatch = batches.find(b => b.cageId === formData.cageId && b.status === "active");
-      console.log("DEBUG: Auto-detect batch for cage:", formData.cageId, "Found batch:", activeBatch?.id);
+      const activeBatch = batches.find(b => String(b.cageId) === String(formData.cageId) && b.status === "active");
+      console.log("FEED AUTOFILL DEBUG: Auto-detect batch for cage:", formData.cageId, "Found batch:", activeBatch?.id);
       if (activeBatch) {
         setFormData(prev => ({ ...prev, batchId: activeBatch.id }));
       } else {
@@ -294,7 +299,7 @@ export default function FeedUsage() {
       if (data.startsWith("GAIOLA:")) {
         cageId = data.replace("GAIOLA:", "");
         console.log("FEED SCAN DEBUG: GAIOLA prefix detected, ID:", cageId);
-        const cage = cages.find(c => c.id === cageId);
+        const cage = cages.find(c => String(c.id) === String(cageId));
         if (cage) {
           groupId = cage.groupId;
           console.log("FEED SCAN DEBUG: Found cage, groupId:", groupId);
@@ -305,7 +310,7 @@ export default function FeedUsage() {
       } else if (data.startsWith("CAIXA:")) {
         cageId = data.replace("CAIXA:", "");
         console.log("FEED SCAN DEBUG: CAIXA prefix detected, ID:", cageId);
-        const box = growthBoxes.find(b => b.id === cageId);
+        const box = growthBoxes.find(b => String(b.id) === String(cageId));
         if (box) {
           groupId = box.aviaryId || "";
           console.log("FEED SCAN DEBUG: Found box, groupId:", groupId);
@@ -326,7 +331,7 @@ export default function FeedUsage() {
 
         // Infer group type if it's a cage and we have groupId
         if (!isBox && groupId) {
-          const group = groups.find(g => g.id === groupId);
+          const group = groups.find(g => String(g.id) === String(groupId));
           if (group) {
             const t = (group.type || '').toLowerCase();
             console.log("FEED SCAN DEBUG: Group type:", t);

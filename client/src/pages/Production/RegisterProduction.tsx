@@ -72,7 +72,7 @@ export default function RegisterProduction() {
 
       if (data.startsWith("GAIOLA:")) {
         cageId = data.replace("GAIOLA:", "");
-        const cage = cages.find(c => c.id === cageId);
+        const cage = cages.find(c => String(c.id) === String(cageId));
         if (cage) {
           groupId = cage.groupId;
         }

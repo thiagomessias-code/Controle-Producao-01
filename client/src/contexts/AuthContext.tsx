@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const storedUser = localStorage.getItem('auth_user');
             const storedToken = localStorage.getItem('auth_token');
 
-            if (storedUser && storedToken) {
+            if (storedUser && storedToken && storedUser !== 'undefined' && storedUser !== 'null') {
                 const parsed = JSON.parse(storedUser);
                 // Optimistically set user from storage
                 setUser(parsed);

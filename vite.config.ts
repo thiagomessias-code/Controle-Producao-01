@@ -28,9 +28,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Only pre-cache static icons and manifest artifacts. 
-        // Exclude large JS/CSS bundles to avoid the 2MB limit.
-        globPatterns: ["**/*.{ico,png,svg,webp,woff,woff2,ttf,eot}", "manifest.webmanifest"],
+        // Only pre-cache static icons, manifest and the app shell.
+        globPatterns: ["**/*.{ico,png,svg,webp,woff,woff2,ttf,eot}", "index.html", "manifest.webmanifest"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\..*/i,

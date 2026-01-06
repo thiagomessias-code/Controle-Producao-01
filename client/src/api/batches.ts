@@ -106,6 +106,10 @@ export const batchesApi = {
       // Fetch all lotes, assuming we want to filter by Growth/Crescimento context usually?
       // Or we just fetch all and let frontend filter.
       const lotes = await supabaseClient.get<any[]>("/lotes");
+      if (!Array.isArray(lotes)) {
+        console.error("API returned non-array for batches:", lotes);
+        return [];
+      }
       return lotes.map(mapLoteToBatch);
     } catch (error) {
       console.error("Error fetching batches:", error);

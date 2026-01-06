@@ -9,8 +9,10 @@ export const formatDate = (date: Date | string | null | undefined): string => {
   });
 };
 
-export const formatDateTime = (date: Date | string): string => {
+export const formatDateTime = (date: Date | string | null | undefined): string => {
+  if (!date) return "N/A";
   const d = typeof date === "string" ? new Date(date) : date;
+  if (isNaN(d.getTime())) return "Data Inválida";
   return d.toLocaleDateString("pt-BR", {
     year: "numeric",
     month: "2-digit",

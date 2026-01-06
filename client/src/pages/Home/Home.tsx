@@ -78,17 +78,6 @@ export default function Home() {
                 Bem-vindo à excelência na gestão das <span className="text-orange-600 font-bold">Codornas do Sertão</span>.
               </p>
             </div>
-
-            {permission === "default" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={requestPermission}
-                className="bg-white hover:bg-orange-50 text-orange-600 border-orange-100 rounded-xl font-bold"
-              >
-                🔔 Ativar Notificações
-              </Button>
-            )}
           </div>
 
           {/* Welcome Section */}

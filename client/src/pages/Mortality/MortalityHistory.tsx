@@ -66,7 +66,7 @@ export default function MortalityHistory() {
             <tbody>
               {mortalities.map((mortality) => (
                 <tr key={mortality.id} className="border-b border-border hover:bg-muted/50">
-                  <td className="py-3 px-4">{formatDate(mortality.date)}</td>
+                  <td className="py-3 px-4">{formatDateTime(mortality.date)}</td>
                   <td className="py-3 px-4">{formatQuantity(mortality.quantity)}</td>
                   <td className="py-3 px-4">{mortality.cause}</td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">

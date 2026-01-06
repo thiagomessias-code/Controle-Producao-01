@@ -707,7 +707,7 @@ export default function GroupDetails() {
                         <div className={`w-2 h-2 rounded-full ${item.color === 'blue' ? 'bg-blue-500' : item.color === 'green' ? 'bg-green-500' : 'bg-red-500'} group-hover:scale-125 transition-transform`}></div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight truncate">{item.subLabel}</span>
-                          <span className="text-[8px] font-bold text-orange-400/60 uppercase">{formatDate(item.date)}</span>
+                          <span className="text-[8px] font-bold text-orange-400/60 uppercase">{formatDateTime(item.date)}</span>
                         </div>
                       </div>
                     ));
@@ -837,7 +837,7 @@ export default function GroupDetails() {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-orange-600/50 uppercase tracking-widest">Cadastro</p>
-                <p className="text-sm font-black text-gray-900 tabular-nums">{formatDate(group.createdAt)}</p>
+                <p className="text-sm font-black text-gray-900 tabular-nums">{formatDateTime(group.createdAt)}</p>
               </div>
             </div>
 
@@ -999,7 +999,7 @@ export default function GroupDetails() {
                     ) : (
                       feeds.map(feed => (
                         <tr key={feed.id} className="hover:bg-orange-50/30 transition-colors group">
-                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDate(feed.date)}</td>
+                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(feed.date)}</td>
                           <td className="p-6">
                             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${feed.batchId ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
                               {feed.batchId ? 'Lote' : 'Caixa'}
@@ -1038,7 +1038,7 @@ export default function GroupDetails() {
                     ) : (
                       productions.map(p => (
                         <tr key={p.id} className="hover:bg-orange-50/30 transition-colors group">
-                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDate(p.date)}</td>
+                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(p.date)}</td>
                           <td className="p-6 text-right">
                             <span className="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-black text-xs shadow-sm group-hover:scale-105 transition-transform inline-block tabular-nums">
                               {p.quantity}
@@ -1076,7 +1076,7 @@ export default function GroupDetails() {
                     ) : (
                       mortalities.map(m => (
                         <tr key={m.id} className="hover:bg-orange-50/30 transition-colors group">
-                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDate(m.date)}</td>
+                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(m.date)}</td>
                           <td className="p-6">
                             <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${m.batchId ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
                               {m.batchId ? 'Lote' : 'Caixa'}

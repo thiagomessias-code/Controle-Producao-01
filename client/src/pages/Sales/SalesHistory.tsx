@@ -130,10 +130,7 @@ export default function SalesHistory() {
                 {sales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-orange-50/30 transition-all group">
                     <td className="p-6">
-                      <span className="text-sm font-black text-gray-900 block">{formatDate(sale.date)}</span>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                        {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                      <span className="text-sm font-black text-gray-900 block">{formatDateTime(sale.date)}</span>
                     </td>
                     <td className="p-6">
                       <span className="text-sm font-black text-gray-900 capitalize block">{sale.productType}</span>

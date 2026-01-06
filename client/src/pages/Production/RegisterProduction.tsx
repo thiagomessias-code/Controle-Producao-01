@@ -10,6 +10,7 @@ import { useCages } from "@/hooks/useCages";
 import { useBatches } from "@/hooks/useBatches";
 import { useGroups } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function RegisterProduction() {
   const { user } = useAuth();
@@ -66,20 +67,30 @@ export default function RegisterProduction() {
   };
 
   const handleQRCodeScan = (data: string) => {
+    const rawData = data.trim();
     try {
       let cageId = "";
       let groupId = "";
 
-      if (data.startsWith("GAIOLA:")) {
-        cageId = data.replace("GAIOLA:", "");
+      if (rawData.startsWith("GAIOLA:")) {
+        cageId = rawData.replace("GAIOLA:", "");
         const cage = cages.find(c => String(c.id) === String(cageId));
         if (cage) {
           groupId = cage.groupId;
         }
       } else {
-        const scannedData = JSON.parse(data);
-        groupId = scannedData.groupId || "";
-        cageId = scannedData.cageId || "";
+        try {
+          const scannedData = JSON.parse(rawData);
+          groupId = scannedData.groupId || "";
+          cageId = scannedData.cageId || "";
+        } catch (e) {
+          // Fallback to raw ID lookup
+          const cage = cages.find(c => String(c.id) === String(rawData));
+          if (cage) {
+            cageId = rawData;
+            groupId = cage.groupId;
+          }
+        }
       }
 
       if (groupId || cageId) {
@@ -89,11 +100,12 @@ export default function RegisterProduction() {
           cageId: cageId || prev.cageId,
         }));
         setShowScanner(false);
+        setError(""); // Clear any previous errors on success
       } else {
-        setError("QR Code não contém informações de localização válidas");
+        setError("QR Code não reconhecido");
       }
-    } catch {
-      setError("QR Code inválido");
+    } catch (e) {
+      setError("Erro ao processar QR Code");
     }
   };
 
@@ -118,13 +130,18 @@ export default function RegisterProduction() {
         return;
       }
 
+      // Use current time if date is today
+      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+        ? new Date().toISOString()
+        : formData.date;
+
       console.log("Registrando produção...");
       // Create production record
       await create({
         groupId: formData.groupId,
         cageId: formData.cageId,
         batchId: detectedBatch.id, // Traceability update
-        date: formData.date,
+        date: finalDate,
         eggType: formData.eggType,
         quantity: qty,
         quality: formData.quality,
@@ -132,12 +149,10 @@ export default function RegisterProduction() {
         notes: formData.notes,
         userId: user?.id,
       });
-      console.log("Produção registrada. Adicionando ao estoque...");
 
-      // Calculate Validity (Default 30 days for Eggs)
-      const date = new Date(formData.date);
-      date.setDate(date.getDate() + 30);
-      const expirationDate = date.toISOString().split('T')[0];
+      // Validity calc for inventory
+      const expirationDate = new Date(finalDate);
+      expirationDate.setDate(expirationDate.getDate() + 30);
 
       // Add to warehouse (if NOT for internal consumption)
       if (!formData.isInternalConsumption) {
@@ -150,20 +165,20 @@ export default function RegisterProduction() {
               groupId: formData.groupId,
               batchId: detectedBatch.id,
               cageId: formData.cageId,
-              date: formData.date
+              date: finalDate
             },
-            expirationDate
+            expirationDate: expirationDate.toISOString().split('T')[0]
           });
           console.log("Adicionado ao estoque com sucesso.");
         } catch (stockErr) {
           console.error("Erro ao adicionar ao estoque:", stockErr);
-          alert("Produção registrada, mas houve um erro ao atualizar o estoque. Verifique os logs.");
+          toast.error("Produção registrada, mas houve um erro ao atualizar o estoque. Verifique os logs.");
         }
       } else {
         console.log("Destino é Consumo Interno. Pulando atualização de estoque.");
       }
 
-      alert("Produção registrada com sucesso!");
+      toast.success("Produção registrada com sucesso!");
       setLocation("/production");
     } catch (err) {
       console.error(err);

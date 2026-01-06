@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatDate, getDaysDifference } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import QRCodeScanner from "@/components/ui/QRCodeScanner";
+import { toast } from "sonner";
 
 export default function IncubationDetails() {
   const [, setLocation] = useLocation();
@@ -81,7 +82,7 @@ export default function IncubationDetails() {
     if (!hatchData.quantity) return;
 
     if (parseInt(hatchData.quantity) > (incubation?.eggQuantity || 0)) {
-      alert(`Erro: A quantidade eclodida (${hatchData.quantity}) não pode ser maior que o total de ovos (${incubation?.eggQuantity}).`);
+      toast.error(`Erro: A quantidade eclodida (${hatchData.quantity}) não pode ser maior que o total de ovos (${incubation?.eggQuantity}).`);
       return;
     }
 
@@ -116,7 +117,7 @@ export default function IncubationDetails() {
 
     } catch (error) {
       console.error("Erro ao registrar eclosão:", error);
-      alert("Erro ao registrar eclosão.");
+      toast.error("Erro ao registrar eclosão.");
     }
   };
 
@@ -144,19 +145,19 @@ export default function IncubationDetails() {
     if (!incubation) return;
 
     if (!targetBox) {
-      alert("Por favor, identifique a caixa de destino.");
+      toast.error("Por favor, identifique a caixa de destino.");
       return;
     }
 
     if (!realHatchQuantity) {
-      alert("Por favor, informe a quantidade real de pintinhos eclodidos.");
+      toast.error("Por favor, informe a quantidade real de pintinhos eclodidos.");
       return;
     }
 
     const finalQuantity = parseInt(realHatchQuantity);
 
     if (finalQuantity > (incubation.eggQuantity || 0)) {
-      alert(`Erro: A quantidade eclodida (${finalQuantity}) não pode ser maior que o total de ovos (${incubation.eggQuantity}).`);
+      toast.error(`Erro: A quantidade eclodida (${finalQuantity}) não pode ser maior que o total de ovos (${incubation.eggQuantity}).`);
       return;
     }
 
@@ -227,11 +228,11 @@ export default function IncubationDetails() {
         // Or stay on page? Let's stay on page to allow further edits, or redirect if user wants.
         // User behavior usually expects "Save" -> "Done".
         // But for consistency let's just alert success.
-        alert("Dados atualizados com sucesso!");
+        toast.success("Dados atualizados com sucesso!");
       }
     } catch (err) {
       console.error("Erro ao atualizar incubação", err);
-      alert("Erro ao salvar dados.");
+      toast.error("Erro ao salvar dados.");
     }
   };
 

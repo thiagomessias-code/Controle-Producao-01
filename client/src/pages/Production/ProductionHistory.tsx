@@ -166,7 +166,7 @@ export default function ProductionHistory() {
                     {productions.map((p) => (
                       <tr key={p.id} className="hover:bg-orange-50/30 transition-all group">
                         <td className="p-6">
-                          <span className="text-sm font-black text-gray-900">{formatDate(p.date)}</span>
+                          <span className="text-sm font-black text-gray-900">{formatDateTime(p.date)}</span>
                         </td>
                         <td className="p-6">
                           <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function ProductionHistory() {
                     {mortalities.map((m) => (
                       <tr key={m.id} className="hover:bg-orange-50/30 transition-all group">
                         <td className="p-6">
-                          <span className="text-sm font-black text-gray-900">{formatDate(m.date)}</span>
+                          <span className="text-sm font-black text-gray-900">{formatDateTime(m.date)}</span>
                         </td>
                         <td className="p-6 text-lg font-black text-gray-900 tabular-nums">
                           {formatQuantity(m.quantity)}

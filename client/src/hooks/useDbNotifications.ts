@@ -42,7 +42,41 @@ export function useDbNotifications() {
     };
 
     useEffect(() => {
+        if (!user?.id) return;
+
         fetchNotifications();
+
+        // Subscribe to real-time notifications
+        const channel = supabase
+            .channel(`public:notificacoes:usuario_id=eq.${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'notificacoes',
+                    filter: `usuario_id=eq.${user.id}`
+                },
+                (payload) => {
+                    console.log('Real-time notification received:', payload.new);
+                    setNotifications(prev => [payload.new, ...prev]);
+
+                    // Play sound
+                    try {
+                        const audio = new Audio('/notification.mp3');
+                        audio.play().catch(e => {
+                            console.warn('Audio playback failed (browser policy?):', e);
+                        });
+                    } catch (e) {
+                        console.error('Failed to create Audio object:', e);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [user?.id]);
 
     return {

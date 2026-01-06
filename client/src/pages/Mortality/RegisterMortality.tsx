@@ -49,20 +49,30 @@ export default function RegisterMortality() {
   };
 
   const handleQRCodeScan = (data: string) => {
+    const rawData = data.trim();
     try {
       let cageId = "";
       let groupId = "";
 
-      if (data.startsWith("GAIOLA:")) {
-        cageId = data.replace("GAIOLA:", "");
+      if (rawData.startsWith("GAIOLA:")) {
+        cageId = rawData.replace("GAIOLA:", "");
         const cage = cages.find(c => String(c.id) === String(cageId));
         if (cage) {
           groupId = cage.groupId;
         }
       } else {
-        const scannedData = JSON.parse(data);
-        groupId = scannedData.groupId || "";
-        cageId = scannedData.cageId || "";
+        try {
+          const scannedData = JSON.parse(rawData);
+          groupId = scannedData.groupId || "";
+          cageId = scannedData.cageId || "";
+        } catch (e) {
+          // Fallback to raw ID lookup
+          const cage = cages.find(c => String(c.id) === String(rawData));
+          if (cage) {
+            cageId = rawData;
+            groupId = cage.groupId;
+          }
+        }
       }
 
       if (groupId || cageId) {
@@ -72,11 +82,12 @@ export default function RegisterMortality() {
           cageId: cageId || prev.cageId,
         }));
         setShowScanner(false);
+        toast.success("Localização identificada!");
       } else {
-        setError("QR Code não contém informações de localização válidas");
+        toast.error("QR Code não reconhecido");
       }
-    } catch {
-      setError("QR Code inválido");
+    } catch (e) {
+      toast.error("Erro ao processar QR Code");
     }
   };
 
@@ -111,9 +122,11 @@ export default function RegisterMortality() {
     }
 
     try {
-      let remainingToDeduct = qtyRequested;
+      // Use current time if date is today
+      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+        ? new Date().toISOString()
+        : formData.date;
 
-      // 2. FIFO Loop: Deduct from oldest batches first
       for (const batch of activeBatchesInCage) {
         if (remainingToDeduct <= 0) break;
 
@@ -128,7 +141,7 @@ export default function RegisterMortality() {
           groupId: formData.groupId,
           cageId: formData.cageId,
           batchId: batch.id,
-          date: formData.date,
+          date: finalDate,
           quantity: deductionFromThisBatch,
           cause: formData.cause,
           notes: `${formData.notes}${activeBatchesInCage.length > 1 ? ` (FIFO Lote #${batch.batchNumber})` : ''}`,
@@ -137,9 +150,8 @@ export default function RegisterMortality() {
 
         // Handle Slaughter (Specific for Abate)
         if (formData.cause === "Abate") {
-          const date = new Date(formData.date);
-          date.setDate(date.getDate() + 5);
-          const expirationDate = date.toISOString().split("T")[0];
+          const expirationDate = new Date(finalDate);
+          expirationDate.setDate(expirationDate.getDate() + 5);
 
           await addInventory({
             type: "meat",
@@ -149,9 +161,9 @@ export default function RegisterMortality() {
               groupId: formData.groupId,
               batchId: batch.id,
               cageId: formData.cageId,
-              date: formData.date
+              date: finalDate
             },
-            expirationDate
+            expirationDate: expirationDate.toISOString().split("T")[0]
           });
         }
 

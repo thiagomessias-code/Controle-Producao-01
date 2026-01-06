@@ -290,14 +290,17 @@ export default function FeedUsage() {
   };
 
   const handleQRCodeScan = (data: string) => {
-    console.log("FEED SCAN DEBUG: Scanned data:", data);
+    const rawData = data.trim();
+    console.log("FEED SCAN DEBUG: Scanned data:", rawData);
+
     try {
       let cageId = "";
       let groupId = "";
       let isBox = false;
 
-      if (data.startsWith("GAIOLA:")) {
-        cageId = data.replace("GAIOLA:", "");
+      // Stage 1: Check for prefixes
+      if (rawData.startsWith("GAIOLA:")) {
+        cageId = rawData.replace("GAIOLA:", "");
         console.log("FEED SCAN DEBUG: GAIOLA prefix detected, ID:", cageId);
         const cage = cages.find(c => String(c.id) === String(cageId));
         if (cage) {
@@ -307,8 +310,8 @@ export default function FeedUsage() {
           console.warn("FEED SCAN DEBUG: Cage not found in local state:", cageId);
         }
         isBox = false;
-      } else if (data.startsWith("CAIXA:")) {
-        cageId = data.replace("CAIXA:", "");
+      } else if (rawData.startsWith("CAIXA:")) {
+        cageId = rawData.replace("CAIXA:", "");
         console.log("FEED SCAN DEBUG: CAIXA prefix detected, ID:", cageId);
         const box = growthBoxes.find(b => String(b.id) === String(cageId));
         if (box) {
@@ -319,12 +322,37 @@ export default function FeedUsage() {
         }
         isBox = true;
       } else {
-        const scannedData = JSON.parse(data);
-        console.log("FEED SCAN DEBUG: JSON data detected:", scannedData);
-        groupId = scannedData.groupId || "";
-        cageId = scannedData.cageId || "";
-        isBox = !!(scannedData.isGrowthBox || scannedData.batchId);
+        // Stage 2: Try JSON
+        try {
+          const scannedData = JSON.parse(rawData);
+          console.log("FEED SCAN DEBUG: JSON data detected:", scannedData);
+          groupId = scannedData.groupId || "";
+          cageId = scannedData.cageId || "";
+          isBox = !!(scannedData.isGrowthBox || scannedData.batchId);
+        } catch (e) {
+          // Stage 3: Raw ID Fallback (try to find matching cage or box by ID)
+          console.log("FEED SCAN DEBUG: Not JSON, attempting raw ID match:", rawData);
+          const cage = cages.find(c => String(c.id) === String(rawData));
+          if (cage) {
+            cageId = rawData;
+            groupId = cage.groupId;
+            isBox = false;
+            console.log("FEED SCAN DEBUG: Raw ID matched a cage:", cageId);
+          } else {
+            const box = growthBoxes.find(b => String(b.id) === String(rawData));
+            if (box) {
+              cageId = rawData;
+              groupId = box.aviaryId || "";
+              isBox = true;
+              console.log("FEED SCAN DEBUG: Raw ID matched a growth box:", cageId);
+            } else {
+              console.warn("FEED SCAN DEBUG: Raw ID did not match any cage or box.");
+            }
+          }
+        }
       }
+
+      console.log("FEED SCAN DEBUG: Resolved IDs:", { cageId, groupId, isBox });
 
       if (groupId || cageId) {
         setIsGrowthBox(isBox);
@@ -335,9 +363,10 @@ export default function FeedUsage() {
           if (group) {
             const t = (group.type || '').toLowerCase();
             console.log("FEED SCAN DEBUG: Group type:", t);
-            if (t.includes('prod') || t.includes('postura')) setSelectedGroupType('produtoras');
-            else if (t.includes('macho')) setSelectedGroupType('machos');
-            else if (t.includes('reprod')) setSelectedGroupType('reprodutoras');
+            if (t.includes('prod') || t.includes('postura')) setSelectedGroupType('production');
+            else if (t.includes('macho')) setSelectedGroupType('males');
+            else if (t.includes('reprod')) setSelectedGroupType('breeders');
+            else if (t.includes('cresci')) setSelectedGroupType('crescimento');
           }
         } else if (isBox) {
           setSelectedGroupType(""); // Reset group type for growth box mode
@@ -353,17 +382,19 @@ export default function FeedUsage() {
         setShowForm(true);
         toast.success(isBox ? "Caixa identificada!" : "Gaiola identificada!");
       } else {
-        setError("QR Code não contém informações de localização válidas");
-        toast.error("QR Code não reconhecido");
+        const errorMsg = "ID não encontrado no sistema";
+        setError(errorMsg);
+        toast.error(errorMsg);
+        console.warn("FEED SCAN DEBUG: Lookup failed for data:", rawData);
       }
-    } catch {
-      setError("QR Code inválido");
-      toast.error("QR Code malformado");
+    } catch (e) {
+      console.error("FEED SCAN DEBUG: Critical error during scan:", e);
+      setError("Erro ao processar QR Code");
+      toast.error("Erro interno no scanner");
     }
   };
 
   const handleToggleGrowth = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsGrowthBox(e.target.checked);
     setFormData(prev => ({ ...prev, groupId: "", cageId: "" }));
   };
 
@@ -395,11 +426,16 @@ export default function FeedUsage() {
     }
 
     try {
+      // Use current time if date is today
+      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+        ? new Date().toISOString()
+        : formData.date;
+
       await create({
         groupId: formData.groupId,
         cageId: formData.cageId,
         batchId: formData.batchId,
-        date: formData.date,
+        date: finalDate,
         quantity: parseFloat(formData.quantity),
         feedTypeId: formData.feedTypeId,
         feedTypeName: formData.feedTypeName,

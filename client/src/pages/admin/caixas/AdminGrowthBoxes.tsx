@@ -7,7 +7,8 @@ import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Pencil, Trash2, Box } from 'lucide-react';
+import { Pencil, Trash2, Box, QrCode } from 'lucide-react';
+import QRCodeModal from '@/components/ui/QRCodeModal';
 
 export const AdminGrowthBoxes: React.FC = () => {
     const [boxes, setBoxes] = useState<GrowthBox[]>([]);
@@ -15,6 +16,13 @@ export const AdminGrowthBoxes: React.FC = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formData, setFormData] = useState<{ id?: string; name?: string; aviaryId?: string; capacity?: number }>({});
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // QR Modal State
+    const [qrModal, setQrModal] = useState<{ open: boolean; value: string; title: string }>({
+        open: false,
+        value: '',
+        title: ''
+    });
 
     useEffect(() => {
         fetchData();
@@ -36,11 +44,10 @@ export const AdminGrowthBoxes: React.FC = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // Map form data to API params
-            const apiData = {
-                nome: formData.name || '',
+            const apiData: any = {
+                name: formData.name || '',
                 aviario_id: formData.aviaryId || '',
-                capacidade: formData.capacity || 100,
+                capacity: formData.capacity || 100,
                 status: 'active' as const
             };
 
@@ -90,6 +97,14 @@ export const AdminGrowthBoxes: React.FC = () => {
     const handleOpenChange = (open: boolean) => {
         setIsDialogOpen(open);
         if (!open) resetForm();
+    };
+
+    const handleShowQR = (box: any) => {
+        setQrModal({
+            open: true,
+            value: `CAIXA:${box.id}`,
+            title: `QR Code - ${box.name}`
+        });
     };
 
     return (
@@ -150,6 +165,15 @@ export const AdminGrowthBoxes: React.FC = () => {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    onClick={() => handleShowQR(box)}
+                                    title="QR Code"
+                                    className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-800"
+                                >
+                                    <QrCode size={18} />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
                                     onClick={() => handleEdit(box)}
                                     title="Editar"
                                     className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800"
@@ -179,6 +203,12 @@ export const AdminGrowthBoxes: React.FC = () => {
                     </Card>
                 ))}
             </div>
+            <QRCodeModal
+                isOpen={qrModal.open}
+                onClose={() => setQrModal({ ...qrModal, open: false })}
+                value={qrModal.value}
+                title={qrModal.title}
+            />
         </div>
     );
 };

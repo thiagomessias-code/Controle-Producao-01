@@ -67,12 +67,31 @@ export default function RegisterProduction() {
 
   const handleQRCodeScan = (data: string) => {
     try {
-      const scannedData = JSON.parse(data);
-      setFormData((prev) => ({
-        ...prev,
-        cageId: scannedData.cageId || prev.cageId,
-      }));
-      setShowScanner(false);
+      let cageId = "";
+      let groupId = "";
+
+      if (data.startsWith("GAIOLA:")) {
+        cageId = data.replace("GAIOLA:", "");
+        const cage = cages.find(c => c.id === cageId);
+        if (cage) {
+          groupId = cage.groupId;
+        }
+      } else {
+        const scannedData = JSON.parse(data);
+        groupId = scannedData.groupId || "";
+        cageId = scannedData.cageId || "";
+      }
+
+      if (groupId || cageId) {
+        setFormData((prev) => ({
+          ...prev,
+          groupId: groupId || prev.groupId,
+          cageId: cageId || prev.cageId,
+        }));
+        setShowScanner(false);
+      } else {
+        setError("QR Code não contém informações de localização válidas");
+      }
     } catch {
       setError("QR Code inválido");
     }

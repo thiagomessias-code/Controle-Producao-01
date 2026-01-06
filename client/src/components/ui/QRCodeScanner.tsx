@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import jsQR from "jsqr";
 import Button from "./Button";
 
 interface QRCodeScannerProps {
@@ -13,12 +14,12 @@ export default function QRCodeScanner({
   onClose,
   onManualInput,
   title = "Escanear QR Code",
-  mockResult
-}: QRCodeScannerProps & { mockResult?: string }) {
+}: QRCodeScannerProps) {
   const [isScanning, setIsScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>();
 
   useEffect(() => {
     if (!isScanning) return;
@@ -45,30 +46,45 @@ export default function QRCodeScanner({
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
         tracks.forEach((track) => track.stop());
       }
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
     };
   }, [isScanning]);
 
-  const handleCapture = () => {
-    if (!canvasRef.current || !videoRef.current) return;
+  const tick = () => {
+    if (!videoRef.current || !canvasRef.current || !isScanning) return;
 
-    const context = canvasRef.current.getContext("2d");
-    if (!context) return;
+    if (videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
+      if (!context) return;
 
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
-    context.drawImage(videoRef.current, 0, 0);
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
-    // Mock QR Code detection or Use provided Mock Result
-    // In production, you would use a library like jsQR or zxing-js
-    const result = mockResult || JSON.stringify({
-      groupId: `group_${Date.now()}`,
-      name: "Grupo Mock",
-      species: "Codorna",
-      quantity: 100, // Default mock
-    });
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
 
-    onScan(result);
+      if (code) {
+        setIsScanning(false);
+        onScan(code.data);
+      }
+    }
+    requestRef.current = requestAnimationFrame(tick);
   };
+
+  useEffect(() => {
+    if (isScanning) {
+      requestRef.current = requestAnimationFrame(tick);
+    }
+    return () => {
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    };
+  }, [isScanning]);
 
   const handleManualInput = () => {
     if (onManualInput) onManualInput();
@@ -100,7 +116,7 @@ export default function QRCodeScanner({
 
               <div className="relative">
                 <div className="absolute inset-0 border-2 border-primary rounded-lg pointer-events-none" />
-                <div className="text-center text-sm text-muted-foreground py-4">
+                <div className="text-center text-sm text-muted-foreground py-4 font-medium animate-pulse">
                   Posicione o QR Code dentro do quadrado
                 </div>
               </div>
@@ -108,16 +124,6 @@ export default function QRCodeScanner({
           )}
 
           <div className="space-y-3">
-            {isScanning && !error && (
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={handleCapture}
-              >
-                Capturar
-              </Button>
-            )}
-
             <Button
               variant="secondary"
               className="w-full"

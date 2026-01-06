@@ -285,17 +285,55 @@ export default function FeedUsage() {
 
   const handleQRCodeScan = (data: string) => {
     try {
-      const scannedData = JSON.parse(data);
-      // Logic would need to infer group type from QR to work perfectly, 
-      // but assuming user selects context or QR contains enough info.
-      // For now, simple ID fill.
-      setFormData(prev => ({
-        ...prev,
-        groupId: scannedData.groupId || prev.groupId,
-        cageId: scannedData.cageId || prev.cageId,
-      }));
-      setShowScanner(false);
-      setShowForm(true);
+      let cageId = "";
+      let groupId = "";
+      let isBox = false;
+
+      if (data.startsWith("GAIOLA:")) {
+        cageId = data.replace("GAIOLA:", "");
+        const cage = cages.find(c => c.id === cageId);
+        if (cage) {
+          groupId = cage.groupId;
+        }
+        isBox = false;
+      } else if (data.startsWith("CAIXA:")) {
+        cageId = data.replace("CAIXA:", "");
+        const box = growthBoxes.find(b => b.id === cageId);
+        if (box) {
+          groupId = box.aviaryId || "";
+        }
+        isBox = true;
+      } else {
+        const scannedData = JSON.parse(data);
+        groupId = scannedData.groupId || "";
+        cageId = scannedData.cageId || "";
+        isBox = !!(scannedData.isGrowthBox || scannedData.batchId);
+      }
+
+      if (groupId || cageId) {
+        setIsGrowthBox(isBox);
+
+        // Infer group type if it's a cage
+        if (!isBox && groupId) {
+          const group = groups.find(g => g.id === groupId);
+          if (group) {
+            const t = (group.type || '').toLowerCase();
+            if (t.includes('prod') || t.includes('postura')) setSelectedGroupType('produtoras');
+            else if (t.includes('macho')) setSelectedGroupType('machos');
+            else if (t.includes('reprod')) setSelectedGroupType('reprodutoras');
+          }
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          groupId: groupId || prev.groupId,
+          cageId: cageId || prev.cageId,
+        }));
+        setShowScanner(false);
+        setShowForm(true);
+      } else {
+        setError("QR Code não contém informações de localização válidas");
+      }
     } catch {
       setError("QR Code inválido");
     }

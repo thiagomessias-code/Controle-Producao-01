@@ -15,22 +15,70 @@ import { useIncubation } from "@/hooks/useIncubation";
 import { getDaysDifference } from "@/utils/date";
 import { formatQuantity, formatCurrency } from "@/utils/format";
 import { useFeed } from "@/hooks/useFeed";
-import { AlertTriangle } from "lucide-react";
+import {
+  AlertTriangle,
+  LayoutDashboard,
+  Thermometer,
+  Droplets,
+  Plus,
+  Wind,
+  ClipboardList,
+  Egg,
+  TrendingUp,
+  Package,
+  Wheat,
+  BadgeDollarSign
+} from "lucide-react";
 
-interface QuickAction {
-  label: string;
-  path: string;
-  icon: string;
-  color: string;
-}
-
-const quickActions: QuickAction[] = [
-  { label: "Registrar Produção", path: "/production/register", icon: "📊", color: "bg-green-100" },
-  { label: "Registrar Venda", path: "/sales/register", icon: "💰", color: "bg-yellow-100" },
-  { label: "Registrar Incubação", path: "/incubation/create", icon: "🥚", color: "bg-orange-100" },
-  { label: "Registrar Abatimentos", path: "/mortality/register", icon: "⚠️", color: "bg-red-100" },
-  { label: "Registrar Alimentação", path: "/feed", icon: "🌾", color: "bg-amber-100" },
-  { label: "Caixas de Crescimento", path: "/groups/growth", icon: "📦", color: "bg-blue-100" },
+const quickActions = [
+  {
+    label: "Registrar Produção",
+    path: "/production/register",
+    icon: Egg,
+    color: "bg-emerald-500",
+    lightColor: "bg-emerald-50",
+    textColor: "text-emerald-600"
+  },
+  {
+    label: "Registrar Venda",
+    path: "/sales/register",
+    icon: BadgeDollarSign,
+    color: "bg-amber-500",
+    lightColor: "bg-amber-50",
+    textColor: "text-amber-600"
+  },
+  {
+    label: "Registrar Incubação",
+    path: "/incubation/create",
+    icon: TrendingUp,
+    color: "bg-orange-500",
+    lightColor: "bg-orange-50",
+    textColor: "text-orange-600"
+  },
+  {
+    label: "Registrar Baixas",
+    path: "/mortality/register",
+    icon: AlertTriangle,
+    color: "bg-rose-500",
+    lightColor: "bg-rose-50",
+    textColor: "text-rose-600"
+  },
+  {
+    label: "Registrar Trato",
+    path: "/feed",
+    icon: Wheat,
+    color: "bg-yellow-500",
+    lightColor: "bg-yellow-50",
+    textColor: "text-yellow-600"
+  },
+  {
+    label: "Recria (Ciclo)",
+    path: "/groups/growth",
+    icon: Package,
+    color: "bg-sky-500",
+    lightColor: "bg-sky-50",
+    textColor: "text-sky-600"
+  },
 ];
 
 export default function Home() {
@@ -115,21 +163,32 @@ export default function Home() {
           })()}
 
           {/* Quick Actions - Grid Layout */}
-          <div className="space-y-4">
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Ações Rápidas</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 ml-1">
+              <div className="w-1.5 h-4 bg-orange-600 rounded-full"></div>
+              <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Ações Rápidas de Gestão</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {quickActions.map((action) => (
                 <button
                   key={action.path}
                   onClick={() => setLocation(action.path)}
-                  className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 hover:shadow-xl hover:shadow-orange-100/50 hover:-translate-y-1 transition-all duration-300 group active:scale-95"
+                  className="bg-white border-2 border-gray-50 rounded-[2.5rem] p-8 flex flex-col items-center justify-center gap-5 hover:shadow-2xl hover:shadow-orange-200/40 hover:-translate-y-2 transition-all duration-500 group active:scale-95 text-center h-full relative overflow-hidden"
                 >
-                  <div className="w-12 h-12 bg-orange-50 group-hover:bg-orange-600 text-orange-600 group-hover:text-white rounded-xl flex items-center justify-center text-2xl transition-all duration-300 shadow-inner group-hover:shadow-lg group-hover:shadow-orange-200">
-                    {action.icon}
+                  <div className={`absolute top-0 right-0 w-24 h-24 ${action.lightColor} rounded-full -mr-12 -mt-12 opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
+
+                  <div className={`w-20 h-20 ${action.lightColor} group-hover:${action.color} ${action.textColor} group-hover:text-white rounded-[1.75rem] flex items-center justify-center transition-all duration-500 shadow-inner group-hover:shadow-2xl group-hover:rotate-6`}>
+                    <action.icon size={36} strokeWidth={2.5} />
                   </div>
-                  <span className="text-[11px] font-black text-center text-gray-500 group-hover:text-orange-700 transition-colors uppercase tracking-tight leading-tight">
-                    {action.label}
-                  </span>
+
+                  <div className="space-y-1">
+                    <span className="text-[13px] font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight leading-none block">
+                      {action.label.split(' ')[0]}
+                    </span>
+                    <span className="text-[13px] font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight leading-none block">
+                      {action.label.split(' ').slice(1).join(' ')}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>

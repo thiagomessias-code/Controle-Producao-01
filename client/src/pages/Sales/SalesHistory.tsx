@@ -32,8 +32,8 @@ export default function SalesHistory() {
     fetchData();
   }, []);
 
-  const totalRevenue = sales.reduce((acc, sale) => acc + sale.totalPrice, 0);
-  const totalQuantity = sales.reduce((acc, sale) => acc + sale.quantity, 0);
+  const totalRevenue = (sales || []).reduce((acc, sale) => acc + sale.totalPrice, 0);
+  const totalQuantity = (sales || []).reduce((acc, sale) => acc + sale.quantity, 0);
 
   const getVariationName = (id?: string) => {
     if (!id) return '';

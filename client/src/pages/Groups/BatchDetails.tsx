@@ -679,21 +679,21 @@ export default function GroupDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                   {(() => {
                     const combinedHistory = [
-                      ...auditLogs.map(log => ({
+                      ...(auditLogs || []).map(log => ({
                         type: 'audit',
                         date: log.created_at,
                         label: log.action.toUpperCase(),
                         subLabel: typeof log.details === 'string' ? log.details : (log.details?.status || ''),
                         color: 'blue'
                       })),
-                      ...feeds.slice(0, 5).map(f => ({
+                      ...(feeds || []).slice(0, 5).map(f => ({
                         type: 'feed',
                         date: f.executedAt || f.date,
                         label: 'TRATO',
                         subLabel: `${f.feedTypeName} (${f.quantity}kg)`,
                         color: 'green'
                       })),
-                      ...mortalities.slice(0, 5).map(m => ({
+                      ...(mortalities || []).slice(0, 5).map(m => ({
                         type: 'mortality',
                         date: m.date,
                         label: 'BAIXA',
@@ -702,7 +702,7 @@ export default function GroupDetails() {
                       }))
                     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
 
-                    return combinedHistory.map((item, index) => (
+                    return (combinedHistory || []).map((item, index) => (
                       <div key={index} className="flex items-center gap-3 bg-orange-50/20 p-3 rounded-xl border border-orange-100/30 group">
                         <div className={`w-2 h-2 rounded-full ${item.color === 'blue' ? 'bg-blue-500' : item.color === 'green' ? 'bg-green-500' : 'bg-red-500'} group-hover:scale-125 transition-transform`}></div>
                         <div className="flex flex-col min-w-0">

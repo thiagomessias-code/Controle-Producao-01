@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/api/supabaseClient';
 import { useAuth } from './useAuth';
 
@@ -22,7 +22,7 @@ export function useDbNotifications() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         if (!user?.id) return;
         try {
             setLoading(true);
@@ -40,9 +40,9 @@ export function useDbNotifications() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [user?.id]);
 
-    const subscribeToPush = async () => {
+    const subscribeToPush = useCallback(async () => {
         if (!user?.id || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
         try {
@@ -78,9 +78,9 @@ export function useDbNotifications() {
         } catch (error) {
             console.error('Error subscribing to push notifications:', error);
         }
-    };
+    }, [user?.id]);
 
-    const markAsRead = async (id: string) => {
+    const markAsRead = useCallback(async (id: string) => {
         try {
             const { error } = await supabase
                 .from('notificacoes')
@@ -92,7 +92,7 @@ export function useDbNotifications() {
         } catch (error) {
             console.error('Error marking notification as read:', error);
         }
-    };
+    }, []);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -149,7 +149,7 @@ export function useDbNotifications() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user?.id]);
+    }, [user?.id, fetchNotifications, subscribeToPush]);
 
     return {
         notifications,

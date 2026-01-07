@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 
 export const useNotifications = () => {
@@ -11,16 +11,16 @@ export const useNotifications = () => {
         }
     }, []);
 
-    const requestPermission = async () => {
+    const requestPermission = useCallback(async () => {
         if ("Notification" in window) {
             const result = await Notification.requestPermission();
             setPermission(result);
             return result;
         }
         return "denied";
-    };
+    }, []);
 
-    const sendNotification = async (title: string, options?: NotificationOptions, actionUrl?: string) => {
+    const sendNotification = useCallback(async (title: string, options?: NotificationOptions, actionUrl?: string) => {
         if (permission === "granted") {
             // Try to use Service Worker first
             if ('serviceWorker' in navigator) {
@@ -56,9 +56,9 @@ export const useNotifications = () => {
                 }
             };
         }
-    };
+    }, [permission, setLocation]);
 
-    const scheduleRoutine = (hour: number, minute: number, title: string, actionUrl: string, onTrigger?: () => void) => {
+    const scheduleRoutine = useCallback((hour: number, minute: number, title: string, actionUrl: string, onTrigger?: () => void) => {
         const now = new Date();
         const scheduledTime = new Date();
         scheduledTime.setHours(hour, minute, 0, 0);
@@ -80,7 +80,7 @@ export const useNotifications = () => {
         }, delay);
 
         return timer;
-    };
+    }, [sendNotification]);
 
     return {
         permission,

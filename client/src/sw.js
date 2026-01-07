@@ -1,8 +1,30 @@
-import { precacheAndRoute } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 
-// Injeta o manifesto de assets do Vite
 // @ts-ignore
-precacheAndRoute(self.__WB_MANIFEST || []);
+const manifest = self.__WB_MANIFEST;
+if (manifest) {
+    precacheAndRoute(manifest);
+}
+
+cleanupOutdatedCaches();
+
+// Cache de imagens
+registerRoute(
+    ({ request }) => request.destination === 'image',
+    new CacheFirst({
+        cacheName: 'images',
+    })
+);
+
+// Cache de fontes
+registerRoute(
+    ({ request }) => request.destination === 'font',
+    new CacheFirst({
+        cacheName: 'fonts',
+    })
+);
 
 self.addEventListener('notificationclick', function (event) {
     event.notification.close();
@@ -24,18 +46,18 @@ self.addEventListener('notificationclick', function (event) {
 });
 
 self.addEventListener('push', function (event) {
-    let data = {};
+    let data = { title: 'Nova Notificação', message: 'Você recebeu uma nova atualização.' };
+
     if (event.data) {
         try {
             data = event.data.json();
         } catch (e) {
-            data = { message: event.data.text() };
+            data = { ...data, message: event.data.text() };
         }
     }
 
-    const title = data.title || 'Nova Notificação';
     const options = {
-        body: data.message || 'Você recebeu uma nova atualização.',
+        body: data.message,
         icon: '/logo.jpg',
         badge: '/logo.jpg',
         data: {
@@ -43,7 +65,7 @@ self.addEventListener('push', function (event) {
         }
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
 self.addEventListener('install', (event) => {

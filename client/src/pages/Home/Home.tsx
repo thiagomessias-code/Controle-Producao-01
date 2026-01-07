@@ -34,7 +34,7 @@ const quickActions = [
   {
     label: "Registrar Produção",
     path: "/production/register",
-    icon: Egg,
+    icon: "📊",
     color: "bg-emerald-500",
     lightColor: "bg-emerald-50",
     textColor: "text-emerald-600"
@@ -42,7 +42,7 @@ const quickActions = [
   {
     label: "Registrar Venda",
     path: "/sales/register",
-    icon: BadgeDollarSign,
+    icon: "💰",
     color: "bg-amber-500",
     lightColor: "bg-amber-50",
     textColor: "text-amber-600"
@@ -50,31 +50,31 @@ const quickActions = [
   {
     label: "Registrar Incubação",
     path: "/incubation/create",
-    icon: TrendingUp,
+    icon: "🥚",
     color: "bg-orange-500",
     lightColor: "bg-orange-50",
     textColor: "text-orange-600"
   },
   {
-    label: "Registrar Baixas",
+    label: "Registrar Abatimentos",
     path: "/mortality/register",
-    icon: AlertTriangle,
+    icon: "⚠️",
     color: "bg-rose-500",
     lightColor: "bg-rose-50",
     textColor: "text-rose-600"
   },
   {
-    label: "Registrar Trato",
+    label: "Registrar Alimentação",
     path: "/feed",
-    icon: Wheat,
+    icon: "🌾",
     color: "bg-yellow-500",
     lightColor: "bg-yellow-50",
     textColor: "text-yellow-600"
   },
   {
-    label: "Recria (Ciclo)",
+    label: "Caixas de Crescimento",
     path: "/groups/growth",
-    icon: Package,
+    icon: "📦",
     color: "bg-sky-500",
     lightColor: "bg-sky-50",
     textColor: "text-sky-600"
@@ -177,16 +177,13 @@ export default function Home() {
                 >
                   <div className={`absolute top-0 right-0 w-24 h-24 ${action.lightColor} rounded-full -mr-12 -mt-12 opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
 
-                  <div className={`w-20 h-20 ${action.lightColor} group-hover:${action.color} ${action.textColor} group-hover:text-white rounded-[1.75rem] flex items-center justify-center transition-all duration-500 shadow-inner group-hover:shadow-2xl group-hover:rotate-6`}>
-                    <action.icon size={36} strokeWidth={2.5} />
+                  <div className={`w-20 h-20 ${action.lightColor} group-hover:${action.color} ${action.textColor} group-hover:text-white rounded-[1.75rem] flex items-center justify-center transition-all duration-500 shadow-inner group-hover:shadow-2xl group-hover:rotate-6 text-4xl`}>
+                    {action.icon}
                   </div>
 
                   <div className="space-y-1">
                     <span className="text-[13px] font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight leading-none block">
-                      {action.label.split(' ')[0]}
-                    </span>
-                    <span className="text-[13px] font-black text-gray-900 group-hover:text-orange-600 transition-colors uppercase tracking-tight leading-none block">
-                      {action.label.split(' ').slice(1).join(' ')}
+                      {action.label}
                     </span>
                   </div>
                 </button>

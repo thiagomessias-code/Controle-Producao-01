@@ -28,6 +28,25 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
+self.addEventListener('push', function (event) {
+  let data = {};
+  if (event.data) {
+    data = event.data.json();
+  }
+
+  const title = data.title || 'Nova Notificação';
+  const options = {
+    body: data.message || 'Você recebeu uma nova atualização.',
+    icon: '/logo.jpg',
+    badge: '/logo.jpg',
+    data: {
+      url: data.url || '/'
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });

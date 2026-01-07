@@ -363,9 +363,9 @@ export default function FeedUsage() {
           if (group) {
             const t = (group.type || '').toLowerCase();
             console.log("FEED SCAN DEBUG: Group type:", t);
-            if (t.includes('prod') || t.includes('postura')) setSelectedGroupType('production');
-            else if (t.includes('macho')) setSelectedGroupType('males');
-            else if (t.includes('reprod')) setSelectedGroupType('breeders');
+            if (t.includes('prod') || t.includes('postura')) setSelectedGroupType('produtoras');
+            else if (t.includes('macho')) setSelectedGroupType('machos');
+            else if (t.includes('reprod')) setSelectedGroupType('reprodutoras');
             else if (t.includes('cresci')) setSelectedGroupType('crescimento');
           }
         } else if (isBox) {

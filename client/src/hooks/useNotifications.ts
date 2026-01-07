@@ -6,13 +6,13 @@ export const useNotifications = () => {
     const [permission, setPermission] = useState<NotificationPermission>("default");
 
     useEffect(() => {
-        if ("Notification" in window) {
+        if (typeof Notification !== "undefined") {
             setPermission(Notification.permission);
         }
     }, []);
 
     const requestPermission = useCallback(async () => {
-        if ("Notification" in window) {
+        if (typeof Notification !== "undefined") {
             const result = await Notification.requestPermission();
             setPermission(result);
             return result;
@@ -40,21 +40,23 @@ export const useNotifications = () => {
             }
 
             // Fallback to standard Notification API
-            const notification = new Notification(title, {
-                icon: "/vite.svg",
-                ...options,
-            });
+            if (typeof Notification !== 'undefined') {
+                const notification = new Notification(title, {
+                    icon: "/vite.svg",
+                    ...options,
+                });
 
-            const audio = new Audio("/notification.mp3");
-            audio.play().catch(() => { });
+                const audio = new Audio("/notification.mp3");
+                audio.play().catch(() => { });
 
-            notification.onclick = () => {
-                window.focus();
-                notification.close();
-                if (actionUrl) {
-                    setLocation(actionUrl);
-                }
-            };
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                    if (actionUrl) {
+                        setLocation(actionUrl);
+                    }
+                };
+            }
         }
     }, [permission, setLocation]);
 

@@ -98,14 +98,16 @@ export function useDbNotifications() {
         if (!user?.id) return;
 
         // Request browser notification permission
-        if (Notification.permission === 'default') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    subscribeToPush();
-                }
-            });
-        } else if (Notification.permission === 'granted') {
-            subscribeToPush();
+        if (typeof Notification !== 'undefined') {
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        subscribeToPush();
+                    }
+                });
+            } else if (Notification.permission === 'granted') {
+                subscribeToPush();
+            }
         }
 
         fetchNotifications();
@@ -126,7 +128,7 @@ export function useDbNotifications() {
                     setNotifications(prev => [payload.new, ...prev]);
 
                     // Show browser notification
-                    if (Notification.permission === 'granted') {
+                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
                         new Notification('Nova Notificação', {
                             body: payload.new.mensagem || 'Você recebeu uma nova mensagem.',
                             icon: '/logo.jpg'

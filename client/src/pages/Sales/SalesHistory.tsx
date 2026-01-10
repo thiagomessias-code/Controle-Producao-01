@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import Loading from "@/components/ui/Loading";
 import { useSales } from "@/hooks/useSales";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime } from "@/utils/date";
 import { formatQuantity, formatCurrency } from "@/utils/format";
 import { supabase, supabaseClient } from "@/api/supabaseClient";
 

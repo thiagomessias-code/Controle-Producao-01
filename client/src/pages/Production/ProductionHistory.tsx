@@ -6,7 +6,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Loading from "@/components/ui/Loading";
 import { useProduction } from "@/hooks/useProduction";
 import { useMortality } from "@/hooks/useMortality";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime } from "@/utils/date";
 import { formatQuantity, formatWeight } from "@/utils/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClipboardList, AlertTriangle, Trash2, Plus } from "lucide-react";

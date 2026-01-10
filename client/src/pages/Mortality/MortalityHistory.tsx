@@ -3,7 +3,7 @@ import Button from "@/components/ui/Button";
 import EmptyState from "@/components/ui/EmptyState";
 import Loading from "@/components/ui/Loading";
 import { useMortality } from "@/hooks/useMortality";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 
 export default function MortalityHistory() {

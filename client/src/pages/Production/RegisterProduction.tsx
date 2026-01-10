@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { useLocation } from "wouter";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -130,10 +131,12 @@ export default function RegisterProduction() {
         return;
       }
 
-      // Use current time if date is today
-      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+      // Check if selected date is today (locally)
+      const localToday = getLocalISODate();
+
+      const finalDate = formData.date === localToday
         ? new Date().toISOString()
-        : formData.date;
+        : `${formData.date}T12:00:00`;
 
       console.log("Registrando produção...");
       // Create production record

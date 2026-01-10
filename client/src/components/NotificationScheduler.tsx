@@ -5,6 +5,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useAppStore } from "@/hooks/useAppStore";
 import { feedApi, FeedConfiguration } from "@/api/feed";
 import { supabase } from "@/api/supabaseClient";
+import { getLocalISODate } from "@/utils/date";
 
 export default function NotificationScheduler() {
   const { batches } = useBatches();
@@ -58,7 +59,7 @@ export default function NotificationScheduler() {
 
         scheduleRoutine(h, m || 0, title, actionUrl, () => {
           // Check if this specific todo already exists for today
-          const today = new Date().toISOString().split('T')[0];
+          const today = getLocalISODate();
           const exists = todos.some(t => t.task === title && t.dueDate === today);
 
           if (!exists) {

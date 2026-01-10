@@ -7,7 +7,7 @@ import { useSales } from "@/hooks/useSales";
 import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { formatCurrency } from "@/utils/format";
 import { supabase } from "@/api/supabaseClient";
 import { aviariesApi } from "@/api/aviaries";
@@ -246,10 +246,12 @@ export default function RegisterSale() {
         }
       }
 
-      // Use current time if date is today
-      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+      // Check if selected date is today (locally)
+      const localToday = getLocalISODate();
+
+      const finalDate = formData.date === localToday
         ? new Date().toISOString()
-        : formData.date;
+        : `${formData.date}T12:00:00`; // Use noon for historical dates to avoid TZ shifts
 
       // Create Sale Record
       await create({

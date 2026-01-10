@@ -127,36 +127,60 @@ export function useDbNotifications() {
                     console.log('Real-time notification received:', payload.new);
                     setNotifications(prev => [payload.new, ...prev]);
 
-                    // Show browser notification
-                    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                        const notificationTitle = 'Nova Notificação';
-                        const notificationOptions = {
-                            body: payload.new.mensagem || 'Você recebeu uma nova mensagem.',
-                            icon: '/logo.jpg',
-                            badge: '/logo.jpg',
-                            vibrate: [200, 100, 200, 100, 200],
-                            tag: 'new-notification',
-                            renotify: true
+                    // 1. Show Toast (Immediate feedback in UI)
+                    const message = payload.new.mensagem || 'Você recebeu uma nova mensagem.';
+                    import('sonner').then(({ toast }) => {
+                        toast.info('🔔 ' + message, {
+                            duration: 5000,
+                            position: 'top-right'
+                        });
+                    }).catch(() => { });
+
+                    // 2. Browser Notification
+                    if (typeof Notification !== 'undefined') {
+                        const showNotification = (title: string, opts: any) => {
+                            if ('serviceWorker' in navigator) {
+                                navigator.serviceWorker.ready.then(reg => {
+                                    reg.showNotification(title, opts);
+                                }).catch(() => {
+                                    new Notification(title, opts);
+                                });
+                            } else {
+                                new Notification(title, opts);
+                            }
                         };
 
-                        if ('serviceWorker' in navigator) {
-                            navigator.serviceWorker.ready.then(registration => {
-                                registration.showNotification(notificationTitle, notificationOptions);
+                        if (Notification.permission === 'granted') {
+                            showNotification('Nova Notificação', {
+                                body: message,
+                                icon: '/logo.jpg',
+                                badge: '/logo.jpg',
+                                vibrate: [200, 100, 200],
+                                tag: 'new-notif',
+                                renotify: true
                             });
-                        } else {
-                            new Notification(notificationTitle, notificationOptions);
+                        } else if (Notification.permission !== 'denied') {
+                            Notification.requestPermission().then(p => {
+                                if (p === 'granted') showNotification('Nova Notificação', { body: message });
+                            });
                         }
                     }
 
-                    // Play sound
+                    // 3. Play sound & Vibrate
                     try {
+                        // Vibration
+                        if ('vibrate' in navigator) {
+                            navigator.vibrate([200, 100, 200]);
+                        }
+
+                        // Sound
                         const audio = new Audio('/notification.mp3');
                         audio.volume = 1.0;
                         audio.play().catch(e => {
-                            console.warn('Audio playback failed (browser policy or missing file):', e);
+                            console.warn('Audio blocked by browser policy:', e);
                         });
                     } catch (e) {
-                        console.error('Failed to create Audio object:', e);
+                        console.error('Audio/Vibrate error:', e);
                     }
                 }
             )

@@ -12,7 +12,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useCages } from "@/hooks/useCages";
 import { useBatches } from "@/hooks/useBatches";
 import { useAppStore } from "@/hooks/useAppStore";
-import { formatDate, formatDateTime } from "@/utils/date";
+import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import { feedApi, FeedType, FeedConfiguration } from "@/api/feed";
 import { Label } from "@/components/ui/label";
@@ -426,10 +426,12 @@ export default function FeedUsage() {
     }
 
     try {
-      // Use current time if date is today
-      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+      // Check if selected date is today (locally)
+      const localToday = getLocalISODate();
+
+      const finalDate = formData.date === localToday
         ? new Date().toISOString()
-        : formData.date;
+        : `${formData.date}T12:00:00`;
 
       await create({
         groupId: formData.groupId,

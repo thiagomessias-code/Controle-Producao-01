@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { useLocation } from "wouter";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -100,6 +101,8 @@ export default function RegisterMortality() {
       return;
     }
 
+    let remainingToDeduct = qtyRequested;
+
     // 1. Find all active batches in the cage and sort by birthDate (FIFO: oldest first)
     const activeBatchesInCage = batches
       ?.filter((b: any) => b.cageId === formData.cageId && b.status === "active")
@@ -122,10 +125,12 @@ export default function RegisterMortality() {
     }
 
     try {
-      // Use current time if date is today
-      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+      // Check if selected date is today (locally)
+      const localToday = getLocalISODate();
+
+      const finalDate = formData.date === localToday
         ? new Date().toISOString()
-        : formData.date;
+        : `${formData.date}T12:00:00`;
 
       for (const batch of activeBatchesInCage) {
         if (remainingToDeduct <= 0) break;
@@ -144,7 +149,7 @@ export default function RegisterMortality() {
           date: finalDate,
           quantity: deductionFromThisBatch,
           cause: formData.cause,
-          notes: `${formData.notes}${activeBatchesInCage.length > 1 ? ` (FIFO Lote #${batch.batchNumber})` : ''}`,
+          notes: `${formData.notes}${activeBatchesInCage.length > 1 ? ` (FIFO Lote #${batch.name})` : ''}`,
           userId: user?.id
         });
 

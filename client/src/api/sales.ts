@@ -104,6 +104,7 @@ export const salesApi = {
       cliente_nome: data.buyer,
       cliente_contato: null, // Frontend doesn't have this field
       valor_total: data.unitPrice * data.quantity,
+      data_venda: data.date,
       metodo_pagamento: data.paymentMethod,
       observacoes: `${data.notes || ''} [Galpao:${data.groupId}]`, // Store groupId in notes
       usuario_id: data.userId,

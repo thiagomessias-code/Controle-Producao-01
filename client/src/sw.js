@@ -60,6 +60,7 @@ self.addEventListener('push', function (event) {
         body: data.message,
         icon: '/logo.jpg',
         badge: '/logo.jpg',
+        vibrate: [200, 100, 200, 100, 200],
         data: {
             url: data.url || '/'
         }

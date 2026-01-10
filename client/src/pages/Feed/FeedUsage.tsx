@@ -12,7 +12,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useCages } from "@/hooks/useCages";
 import { useBatches } from "@/hooks/useBatches";
 import { useAppStore } from "@/hooks/useAppStore";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatDateTime } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import { feedApi, FeedType, FeedConfiguration } from "@/api/feed";
 import { Label } from "@/components/ui/label";
@@ -887,7 +887,7 @@ export default function FeedUsage() {
                           </div>
                         </td>
                         <td className="p-6 font-bold text-gray-500 tabular-nums">
-                          {formatDate(feed.date)}
+                          {formatDateTime(feed.date)}
                         </td>
                         <td className="p-6">
                           <span className="px-3 py-1.5 rounded-lg bg-orange-600 text-white font-black text-sm shadow-sm group-hover:scale-105 transition-transform inline-block tabular-nums">

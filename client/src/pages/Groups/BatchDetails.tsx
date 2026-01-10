@@ -1113,7 +1113,7 @@ export default function GroupDetails() {
                     ) : (
                       (sales || []).map(s => (
                         <tr key={s.id} className="hover:bg-orange-50/30 transition-colors group">
-                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDate(s.date)}</td>
+                          <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(s.date)}</td>
                           <td className="p-6 font-black text-gray-900 uppercase text-xs tracking-tight">{s.buyer || "N/A"}</td>
                           <td className="p-6 text-right font-black text-gray-400 tabular-nums text-xs">{s.quantity}</td>
                           <td className="p-6 text-right">
@@ -1138,7 +1138,7 @@ export default function GroupDetails() {
                     <div key={idx} className="flex gap-6 p-6 rounded-[1.5rem] border border-orange-100/50 bg-orange-50/20 hover:bg-white hover:shadow-xl transition-all group">
                       <div className="flex-none">
                         <div className="px-3 py-2 bg-white text-orange-600 rounded-xl border border-orange-100 font-black text-[9px] tracking-widest shadow-sm">
-                          {formatDate(log.created_at)}
+                          {formatDateTime(log.created_at)}
                         </div>
                       </div>
                       <div className="flex-1">

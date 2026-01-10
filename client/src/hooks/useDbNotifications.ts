@@ -129,15 +129,29 @@ export function useDbNotifications() {
 
                     // Show browser notification
                     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                        new Notification('Nova Notificação', {
+                        const notificationTitle = 'Nova Notificação';
+                        const notificationOptions = {
                             body: payload.new.mensagem || 'Você recebeu uma nova mensagem.',
-                            icon: '/logo.jpg'
-                        });
+                            icon: '/logo.jpg',
+                            badge: '/logo.jpg',
+                            vibrate: [200, 100, 200, 100, 200],
+                            tag: 'new-notification',
+                            renotify: true
+                        };
+
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(registration => {
+                                registration.showNotification(notificationTitle, notificationOptions);
+                            });
+                        } else {
+                            new Notification(notificationTitle, notificationOptions);
+                        }
                     }
 
                     // Play sound
                     try {
                         const audio = new Audio('/notification.mp3');
+                        audio.volume = 1.0;
                         audio.play().catch(e => {
                             console.warn('Audio playback failed (browser policy or missing file):', e);
                         });

@@ -27,13 +27,18 @@ export const useNotifications = () => {
                 const registration = await navigator.serviceWorker.ready;
                 if (registration) {
                     registration.showNotification(title, {
-                        icon: "/vite.svg",
+                        icon: "/logo.jpg",
+                        badge: "/logo.jpg",
+                        vibrate: [200, 100, 200, 100, 200],
+                        tag: 'notification-center',
+                        renotify: true,
                         data: { url: actionUrl }, // Pass URL in data for SW
                         ...options,
                     });
 
                     // Play sound manually as SW doesn't play it automatically
                     const audio = new Audio("/notification.mp3");
+                    audio.volume = 1.0;
                     audio.play().catch(() => { });
                     return;
                 }
@@ -42,11 +47,16 @@ export const useNotifications = () => {
             // Fallback to standard Notification API
             if (typeof Notification !== 'undefined') {
                 const notification = new Notification(title, {
-                    icon: "/vite.svg",
+                    icon: "/logo.jpg",
+                    badge: "/logo.jpg",
+                    vibrate: [200, 100, 200, 100, 200],
+                    tag: 'notification-center',
+                    renotify: true,
                     ...options,
                 });
 
                 const audio = new Audio("/notification.mp3");
+                audio.volume = 1.0;
                 audio.play().catch(() => { });
 
                 notification.onclick = () => {

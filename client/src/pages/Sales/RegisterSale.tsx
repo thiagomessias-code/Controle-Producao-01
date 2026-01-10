@@ -246,10 +246,15 @@ export default function RegisterSale() {
         }
       }
 
+      // Use current time if date is today
+      const finalDate = formData.date === new Date().toISOString().split('T')[0]
+        ? new Date().toISOString()
+        : formData.date;
+
       // Create Sale Record
       await create({
         groupId: formData.groupId || "warehouse",
-        date: formData.date,
+        date: finalDate,
         quantity: qty,
         unitPrice: selectedVariation.price,
         buyer: formData.buyer,

@@ -10,7 +10,7 @@ import { useProduction } from "@/hooks/useProduction";
 import { useMortality } from "@/hooks/useMortality";
 import { useFeed } from "@/hooks/useFeed";
 import { useSales } from "@/hooks/useSales";
-import { formatDate, getDaysDifference } from "@/utils/date";
+import { formatDate, formatDateTime, getDaysDifference } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import { useCages } from "@/hooks/useCages";
 import { useGroups } from "@/hooks/useGroups";

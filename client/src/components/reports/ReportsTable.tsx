@@ -26,7 +26,7 @@ export const ReportsTable: React.FC<ReportsTableProps> = ({ charts, onItemClick 
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {charts.map((chart) =>
-                            chart.data.map((item, idx) => (
+                            (chart.data || []).map((item, idx) => (
                                 <tr
                                     key={`${chart.id}-${idx}`}
                                     className={`hover:bg-blue-50/30 transition-colors group ${onItemClick ? 'cursor-pointer' : ''}`}

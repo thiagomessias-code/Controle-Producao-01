@@ -997,7 +997,7 @@ export default function GroupDetails() {
                     {feeds.length === 0 ? (
                       <tr><td colSpan={5} className="p-16 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">Nenhum registro de trato encontrado</td></tr>
                     ) : (
-                      feeds.map(feed => (
+                      {(feeds || []).map(feed => (
                         <tr key={feed.id} className="hover:bg-orange-50/30 transition-colors group">
                           <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(feed.date)}</td>
                           <td className="p-6">
@@ -1036,7 +1036,7 @@ export default function GroupDetails() {
                     {productions.length === 0 ? (
                       <tr><td colSpan={5} className="p-16 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">Nenhum registro de postura encontrado</td></tr>
                     ) : (
-                      productions.map(p => (
+                      {(productions || []).map(p => (
                         <tr key={p.id} className="hover:bg-orange-50/30 transition-colors group">
                           <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(p.date)}</td>
                           <td className="p-6 text-right">
@@ -1074,7 +1074,7 @@ export default function GroupDetails() {
                     {mortalities.length === 0 ? (
                       <tr><td colSpan={4} className="p-16 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">Nenhuma ocorrência registrada</td></tr>
                     ) : (
-                      mortalities.map(m => (
+                      {(mortalities || []).map(m => (
                         <tr key={m.id} className="hover:bg-orange-50/30 transition-colors group">
                           <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDateTime(m.date)}</td>
                           <td className="p-6">
@@ -1111,7 +1111,7 @@ export default function GroupDetails() {
                     {sales.length === 0 ? (
                       <tr><td colSpan={4} className="p-16 text-center text-[10px] font-black text-gray-300 uppercase tracking-widest">Nenhuma venda faturada recentemente</td></tr>
                     ) : (
-                      sales.map(s => (
+                      {(sales || []).map(s => (
                         <tr key={s.id} className="hover:bg-orange-50/30 transition-colors group">
                           <td className="p-6 text-xs font-bold text-gray-500 tabular-nums">{formatDate(s.date)}</td>
                           <td className="p-6 font-black text-gray-900 uppercase text-xs tracking-tight">{s.buyer || "N/A"}</td>
@@ -1188,7 +1188,7 @@ export default function GroupDetails() {
                     <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                       <h3 className="text-green-800 font-bold mb-2">Resumo da Operação:</h3>
                       <ul className="list-disc list-inside text-green-700 space-y-1">
-                        {transferSummary.map((item, idx) => (
+                        {(transferSummary || []).map((item, idx) => (
                           <li key={idx}>{item}</li>
                         ))}
                       </ul>

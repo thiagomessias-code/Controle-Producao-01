@@ -107,7 +107,7 @@ export const ReportsCharts: React.FC<ReportsChartsProps> = ({ charts = [], onIte
                                 }}
                                 className="cursor-pointer"
                             >
-                                {chart.data.map((_, index) => (
+                                {(chart.data || []).map((_, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Bar>
@@ -128,7 +128,7 @@ export const ReportsCharts: React.FC<ReportsChartsProps> = ({ charts = [], onIte
                                 dataKey="value"
                                 animationDuration={1500}
                             >
-                                {chart.data.map((_, index) => (
+                                {(chart.data || []).map((_, index) => (
                                     <Cell
                                         key={`cell-${index}`}
                                         fill={COLORS[index % COLORS.length]}

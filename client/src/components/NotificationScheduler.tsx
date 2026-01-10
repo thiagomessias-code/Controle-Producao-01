@@ -52,6 +52,7 @@ export default function NotificationScheduler() {
       else if (type.includes('reprod') || type.includes('matriz')) type = 'breeders';
 
       const schedule = (timeStr: string, taskType: string, title: string) => {
+        if (!timeStr || !timeStr.includes(':')) return;
         const [h, m] = timeStr.split(':').map(Number);
         const actionUrl = `/tasks/execute?batchId=${batch.id}&task=${taskType}&time=${timeStr}`;
 

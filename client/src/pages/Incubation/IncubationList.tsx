@@ -45,9 +45,11 @@ export default function IncubationList() {
             {showHistory ? "Histórico de Incubação" : "Incubação de Lotes"}
           </h1>
           <p className="text-gray-500 font-medium text-lg leading-relaxed">
-            {showHistory
-              ? "Relatório de lotes que já <span class='text-orange-600 font-bold'>eclodiram ou foram finalizados</span>."
-              : "Acompanhamento em tempo real de <span class='text-orange-600 font-bold'>temperatura, umidade e prazos</span>."}
+            {showHistory ? (
+              <>Relatório de lotes que já <span className='text-orange-600 font-bold'>eclodiram ou foram finalizados</span>.</>
+            ) : (
+              <>Acompanhamento em tempo real de <span className='text-orange-600 font-bold'>temperatura, umidade e prazos</span>.</>
+            )}
           </p>
         </div>
         <div className="flex gap-3">

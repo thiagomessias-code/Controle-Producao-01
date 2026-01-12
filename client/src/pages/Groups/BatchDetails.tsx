@@ -94,6 +94,8 @@ export default function GroupDetails() {
   // Warehouse Transfer State
   const [isWarehouseTransferModalOpen, setIsWarehouseTransferModalOpen] = useState(false);
   const [warehouseTransferQuantity, setWarehouseTransferQuantity] = useState("");
+  const [warehouseMales, setWarehouseMales] = useState("");
+  const [warehouseFemales, setWarehouseFemales] = useState("");
 
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -436,9 +438,16 @@ export default function GroupDetails() {
   const handleTransferToWarehouse = async () => {
     if (!warehouseTransferQuantity || !group) return;
     const qty = parseInt(warehouseTransferQuantity);
+    const males = parseInt(warehouseMales) || 0;
+    const females = parseInt(warehouseFemales) || 0;
 
     if (qty > group.quantity) {
-      toast.error("Quantidade maior que o disponível no lote.");
+      toast.error("Quantidade total maior que o disponível no lote.");
+      return;
+    }
+
+    if (males + females > qty) {
+      toast.error("A soma de machos e fêmeas não pode exceder a quantidade total.");
       return;
     }
 
@@ -464,7 +473,7 @@ export default function GroupDetails() {
           date: transferDate,
           event: "Transferência (Armazém)",
           quantity: qty,
-          details: `Transferido para Armazém (Pintos).`,
+          details: `Transferido para Armazém. Sexagem: ${males} Machos, ${females} Fêmeas.`,
           origin: group.id
         }
       ];
@@ -474,13 +483,17 @@ export default function GroupDetails() {
         data: {
           status: (group.quantity - qty) <= 0 ? "inactive" : "active",
           quantity: Math.max(0, group.quantity - qty),
+          males: Math.max(0, (group.males || 0) - males),
+          females: Math.max(0, (group.females || 0) - females),
           history: newHistory
         }
       });
 
       setIsWarehouseTransferModalOpen(false);
       setWarehouseTransferQuantity("");
-      toast.success("Transferência para o armazém realizada com sucesso!");
+      setWarehouseMales("");
+      setWarehouseFemales("");
+      toast.success("Transferência para o armazém com sexagem realizada!");
       window.location.reload();
 
     } catch (error) {
@@ -1589,13 +1602,49 @@ export default function GroupDetails() {
                 <CardDescription>Mover do lote {group.name} para o estoque de venda</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input
-                  label="Quantidade"
-                  type="number"
-                  value={warehouseTransferQuantity}
-                  onChange={(e) => setWarehouseTransferQuantity(e.target.value)}
-                  placeholder="Ex: 50"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <Input
+                      label="Quantidade Total"
+                      type="number"
+                      value={warehouseTransferQuantity}
+                      onChange={(e) => setWarehouseTransferQuantity(e.target.value)}
+                      placeholder="Ex: 50"
+                    />
+                  </div>
+                  <div className="flex items-end pb-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Disponível: <span className="text-orange-600">{group.quantity}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100 flex flex-col gap-4">
+                  <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Sexagem no Armazém (Opcional)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="♂️ Machos"
+                      type="number"
+                      value={warehouseMales}
+                      onChange={(e) => setWarehouseMales(e.target.value)}
+                      placeholder="0"
+                    />
+                    <Input
+                      label="♀️ Fêmeas"
+                      type="number"
+                      value={warehouseFemales}
+                      onChange={(e) => setWarehouseFemales(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  {(parseInt(warehouseMales) > 0 || parseInt(warehouseFemales) > 0) && (
+                    <div className="pt-2 border-t border-orange-100/50">
+                      <p className={`text-[10px] font-bold uppercase ${(parseInt(warehouseMales) || 0) + (parseInt(warehouseFemales) || 0) > (parseInt(warehouseTransferQuantity) || 0) ? "text-red-600" : "text-gray-500"}`}>
+                        Total Sexado: {(parseInt(warehouseMales) || 0) + (parseInt(warehouseFemales) || 0)} / {warehouseTransferQuantity || 0}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 {warehouseTransferQuantity && group && parseInt(warehouseTransferQuantity) > group.quantity && (
                   <p className="text-xs text-red-600 font-bold">

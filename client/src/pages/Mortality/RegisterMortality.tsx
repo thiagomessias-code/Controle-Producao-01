@@ -13,6 +13,7 @@ import { useWarehouse } from "@/hooks/useWarehouse";
 import { useCages } from "@/hooks/useCages";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { parseQRData } from "@/utils/qr";
 
 export default function RegisterMortality() {
   const { user } = useAuth();
@@ -50,43 +51,35 @@ export default function RegisterMortality() {
   };
 
   const handleQRCodeScan = (data: string) => {
-    const rawData = data.trim();
     try {
+      const { id } = parseQRData(data);
       let cageId = "";
       let groupId = "";
 
-      if (rawData.startsWith("GAIOLA:")) {
-        cageId = rawData.replace("GAIOLA:", "");
-        const cage = cages.find(c => String(c.id) === String(cageId));
-        if (cage) {
-          groupId = cage.groupId;
-        }
+      // Try as cage
+      const cage = cages.find(c => String(c.id) === String(id));
+      if (cage) {
+        cageId = id;
+        groupId = cage.groupId;
       } else {
-        try {
-          const scannedData = JSON.parse(rawData);
-          groupId = scannedData.groupId || "";
-          cageId = scannedData.cageId || "";
-        } catch (e) {
-          // Fallback to raw ID lookup
-          const cage = cages.find(c => String(c.id) === String(rawData));
-          if (cage) {
-            cageId = rawData;
-            groupId = cage.groupId;
-          }
-        }
+        // Since Mortality can also happen in growth boxes (cages in that context)
+        // Check if its a growth box ID
+        // Note: cagesApi.getAll actually includes growth boxes in some views, 
+        // but here we are using 'cages' from useCages().
+        const growthBoxes = groups.filter(g => g.type === 'crescimento');
+        // Actually growth boxes are usually under 'caixas' table.
+        // mortality usually targets cages.
+        toast.error("Gaiola/Caixa não reconhecida.");
+        return;
       }
 
-      if (groupId || cageId) {
-        setFormData((prev) => ({
-          ...prev,
-          groupId: groupId || prev.groupId,
-          cageId: cageId || prev.cageId,
-        }));
-        setShowScanner(false);
-        toast.success("Localização identificada!");
-      } else {
-        toast.error("QR Code não reconhecido");
-      }
+      setFormData((prev) => ({
+        ...prev,
+        groupId: groupId || prev.groupId,
+        cageId: cageId || prev.cageId,
+      }));
+      setShowScanner(false);
+      toast.success("Localização identificada!");
     } catch (e) {
       toast.error("Erro ao processar QR Code");
     }

@@ -14,6 +14,7 @@ import QRCodeScanner from "@/components/ui/QRCodeScanner";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { feedApi, FeedType } from "@/api/feed";
+import { parseQRData } from "@/utils/qr";
 import { useBatches, useBatchesByCageId } from "@/hooks/useBatches";
 
 export default function CageDetails() {
@@ -77,17 +78,11 @@ export default function CageDetails() {
 
     const handleQRScan = (data: string) => {
         try {
-            let targetCageId = "";
-
-            if (data.startsWith("GAIOLA:")) {
-                targetCageId = data.replace("GAIOLA:", "");
-            } else {
-                const parsed = JSON.parse(data);
-                targetCageId = parsed.cageId || parsed.id;
-            }
+            const { id } = parseQRData(data);
+            const targetCageId = id;
 
             if (targetCageId) {
-                const targetCage = cages.find(c => c.id === targetCageId);
+                const targetCage = cages.find(c => String(c.id) === String(targetCageId));
                 if (targetCage) {
                     setSelectedGroupId(targetCage.groupId);
                     setTransferData(prev => ({ ...prev, targetCageId: targetCage.id }));

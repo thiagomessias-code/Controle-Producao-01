@@ -12,6 +12,7 @@ import { formatDate, getDaysDifference } from "@/utils/date";
 import { formatQuantity } from "@/utils/format";
 import QRCodeScanner from "@/components/ui/QRCodeScanner";
 import { toast } from "sonner";
+import { parseQRData } from "@/utils/qr";
 
 export default function IncubationDetails() {
   const [, setLocation] = useLocation();
@@ -925,18 +926,15 @@ export default function IncubationDetails() {
       {isScannerOpen && (
         <QRCodeScanner
           onScan={(data) => {
-            let scannedId = data;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.id) scannedId = parsed.id;
-            } catch (e) { }
-            const box = growthBoxes.find(b => b.id === scannedId || b.id === data);
+            const { id } = parseQRData(data);
+            const box = growthBoxes.find(b => b.id === id);
+
             if (box) {
               setTargetBox(box.id);
               setIsScannerOpen(false);
               setIsTransferModalOpen(true);
             } else {
-              alert("Caixa não reconhecida pelo sistema.");
+              toast.error("Caixa não reconhecida pelo sistema.");
               setIsScannerOpen(false);
               setIsTransferModalOpen(true);
             }

@@ -12,6 +12,7 @@ import { useBatches } from "@/hooks/useBatches";
 import { useGroups } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { parseQRData } from "@/utils/qr";
 
 export default function RegisterProduction() {
   const { user } = useAuth();
@@ -68,43 +69,31 @@ export default function RegisterProduction() {
   };
 
   const handleQRCodeScan = (data: string) => {
-    const rawData = data.trim();
     try {
+      const { id } = parseQRData(data);
       let cageId = "";
       let groupId = "";
 
-      if (rawData.startsWith("GAIOLA:")) {
-        cageId = rawData.replace("GAIOLA:", "");
-        const cage = cages.find(c => String(c.id) === String(cageId));
-        if (cage) {
-          groupId = cage.groupId;
-        }
+      // Try as cage
+      const cage = cages.find(c => String(c.id) === String(id));
+      if (cage) {
+        cageId = cage.id;
+        groupId = cage.groupId;
       } else {
-        try {
-          const scannedData = JSON.parse(rawData);
-          groupId = scannedData.groupId || "";
-          cageId = scannedData.cageId || "";
-        } catch (e) {
-          // Fallback to raw ID lookup
-          const cage = cages.find(c => String(c.id) === String(rawData));
-          if (cage) {
-            cageId = rawData;
-            groupId = cage.groupId;
-          }
-        }
+        // Fallback: If its a growth box being scanned for production, notify user
+        // Usually production is for cages.
+        toast.error("QR Code não é de uma gaiola válida.");
+        return;
       }
 
-      if (groupId || cageId) {
-        setFormData((prev) => ({
-          ...prev,
-          groupId: groupId || prev.groupId,
-          cageId: cageId || prev.cageId,
-        }));
-        setShowScanner(false);
-        setError(""); // Clear any previous errors on success
-      } else {
-        setError("QR Code não reconhecido");
-      }
+      setFormData((prev) => ({
+        ...prev,
+        groupId: groupId || prev.groupId,
+        cageId: cageId || prev.cageId,
+      }));
+      setShowScanner(false);
+      setError("");
+      toast.success("Gaiola identificada!");
     } catch (e) {
       setError("Erro ao processar QR Code");
     }

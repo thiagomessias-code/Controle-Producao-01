@@ -20,7 +20,7 @@ export interface Incubation {
   species: string;
   temperature: number;
   humidity: number;
-  status: "incubating" | "hatched" | "failed";
+  status: "incubating" | "hatched" | "failed" | "completed";
   notes?: string;
   history?: HistoryEvent[];
   createdAt: string;
@@ -41,7 +41,7 @@ export interface CreateIncubationRequest {
 }
 
 export interface UpdateIncubationRequest extends Partial<CreateIncubationRequest> {
-  status?: "incubating" | "hatched" | "failed";
+  status?: "incubating" | "hatched" | "failed" | "completed";
   actualHatchDate?: string;
   hatchedQuantity?: number;
 }
@@ -120,7 +120,11 @@ const mapIncubationFromBackend = (data: any): Incubation => {
     species: "Codornas Japonesas", // Default as DB might not have it yet
     temperature: 37.5, // Default
     humidity: 60, // Default
-    status: ['finalizado', 'finalizada', 'concluido', 'hatched'].includes(data.status) ? 'hatched' : 'incubating',
+    status: ['finalizado', 'finalizada', 'concluido'].includes(data.status)
+      ? 'completed'
+      : (data.status === 'hatched' || (data.pintos_nascidos && data.pintos_nascidos > 0))
+        ? 'hatched'
+        : 'incubating',
     notes: data.observacoes,
     history: [], // DB doesn't seem to have history column in schema
     createdAt: data.created_at,

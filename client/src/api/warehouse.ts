@@ -130,7 +130,13 @@ export const warehouseApi = {
         // Find items (FIFO)
         const inventory = await warehouseApi.getInventory();
         const relevantItems = inventory
-            .filter(i => i.type === type && i.subtype === subtype && i.quantity > 0)
+            .filter(i => {
+                const typeMatch = i.type === type;
+                // Fuzzy match for subtypes (useful for pinto batches or variations)
+                const subtypeMatch = i.subtype.toLowerCase().includes(subtype.toLowerCase()) ||
+                    subtype.toLowerCase().includes(i.subtype.toLowerCase());
+                return typeMatch && subtypeMatch && i.quantity > 0;
+            })
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
 
         const totalAvailable = relevantItems.reduce((acc, i) => acc + i.quantity, 0);

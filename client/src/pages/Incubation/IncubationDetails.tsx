@@ -257,7 +257,11 @@ export default function IncubationDetails() {
             Lote {incubation.batchNumber}
           </h1>
           <p className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-            Estado Atual: <span className="text-orange-600 font-black">{incubation.status === 'incubating' ? 'EM DESENVOLVIMENTO' : incubation.status.toUpperCase()}</span>
+            Estado Atual: <span className={`${incubation.status === 'completed' ? 'text-green-600' : 'text-orange-600'} font-black`}>
+              {incubation.status === 'incubating' ? 'EM DESENVOLVIMENTO' :
+                incubation.status === 'hatched' ? 'AGUARDANDO EXPEDIÇÃO' :
+                  incubation.status.toUpperCase()}
+            </span>
           </p>
         </div>
         <div className="flex gap-3">
@@ -268,13 +272,15 @@ export default function IncubationDetails() {
           >
             ⬅ Voltar
           </Button>
-          <Button
-            variant="secondary"
-            className="rounded-xl font-black text-[10px] uppercase tracking-widest px-6 py-4 hover:bg-orange-50 transition-all border-none shadow-lg"
-            onClick={() => setShowQRCode(!showQRCode)}
-          >
-            {showQRCode ? "Ocultar Identificador" : "Gerar QR Code"}
-          </Button>
+          {incubation.status !== 'completed' && (
+            <Button
+              variant="secondary"
+              className="rounded-xl font-black text-[10px] uppercase tracking-widest px-6 py-4 hover:bg-orange-50 transition-all border-none shadow-lg"
+              onClick={() => setShowQRCode(!showQRCode)}
+            >
+              {showQRCode ? "Ocultar Identificador" : "Gerar QR Code"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -336,8 +342,8 @@ export default function IncubationDetails() {
 
       {/* Action Banners */}
       {(() => {
-        const hasTransferred = incubation.history?.some(h => h.event.includes("Transferência"));
-        const isHatched = incubation.status === "hatched" || (incubation.hatchedQuantity ?? 0) > 0;
+        const hasTransferred = incubation.status === 'completed' || incubation.history?.some(h => h.event.includes("Transferência"));
+        const isHatched = incubation.status === "hatched" || (incubation.status !== 'completed' && (incubation.hatchedQuantity ?? 0) > 0);
 
         if (isHatched && !hasTransferred) {
           return (
@@ -648,7 +654,7 @@ export default function IncubationDetails() {
       </Card>
 
       {
-        incubation.status !== "hatched" && (
+        incubation.status !== "hatched" && incubation.status !== "completed" && (
           <Card className="border-none shadow-xl shadow-orange-100/30 overflow-hidden rounded-[2rem] bg-white group hover:shadow-2xl transition-all duration-300">
             <CardHeader className="p-8 pb-4">
               <CardTitle className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">Parâmetros de Controle</CardTitle>

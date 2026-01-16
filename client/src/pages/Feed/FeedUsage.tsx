@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { caixasApi, GrowthBox } from "@/api/caixas";
 import { toast } from "sonner";
 import { parseQRData } from "@/utils/qr";
+import { FeedSilo } from "@/components/ui/FeedSilo";
 
 export default function FeedUsage() {
   const { user } = useAuth();
@@ -485,6 +486,21 @@ export default function FeedUsage() {
           </Button>
         </div>
       </div>
+
+      {/* Feed Stock Silos */}
+      {!showScanner && !showForm && availableFeeds.length > 0 && (
+        <div className="flex flex-wrap gap-4 overflow-x-auto pb-4 justify-center md:justify-start">
+          {availableFeeds.map(feed => (
+            <FeedSilo
+              key={feed.id}
+              name={feed.name}
+              current={feed.estoque_atual}
+              max={5000} // Assuming 5 tons for visualization max? 
+              color={feed.name.toLowerCase().includes('postura') ? '#f59e0b' : '#3b82f6'}
+            />
+          ))}
+        </div>
+      )}
 
       {showScanner ? (
         <div className="animate-in fade-in zoom-in-95 duration-300">

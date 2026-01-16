@@ -22,12 +22,12 @@ export default function IncubationList() {
 
   // Filter incubations based on view mode
   const filteredIncubations = (incubations || []).filter((inc) => {
-    // If showing history, show ONLY hatched/completed
+    // If showing history, show ONLY finished/failed
     if (showHistory) {
-      return inc.status === "hatched" || inc.status === "completed";
+      return inc.status === "completed" || inc.status === "failed";
     }
-    // Otherwise (default), show ONLY active (incubating)
-    return inc.status === "incubating" || inc.status === "active";
+    // Otherwise (default), show active cycle (incubating OR hatched but not transferred)
+    return inc.status === "incubating" || inc.status === "active" || inc.status === "hatched";
   });
 
   if (isLoading) {
@@ -46,7 +46,7 @@ export default function IncubationList() {
           </h1>
           <p className="text-gray-500 font-medium text-lg leading-relaxed">
             {showHistory ? (
-              <>Relatório de lotes que já <span className='text-orange-600 font-bold'>eclodiram ou foram finalizados</span>.</>
+              <>Relatório de lotes que já <span className='text-orange-600 font-bold'>foram finalizados ou falharam</span>.</>
             ) : (
               <>Acompanhamento em tempo real de <span className='text-orange-600 font-bold'>temperatura, umidade e prazos</span>.</>
             )}
@@ -94,11 +94,13 @@ export default function IncubationList() {
               <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-full -mr-12 -mt-12 opacity-50 group-hover:bg-orange-100 transition-colors duration-500"></div>
               <CardHeader className="relative z-10 pb-4">
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${incubation.status === 'incubating' || incubation.status === 'active'
-                    ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
-                    : 'bg-white text-gray-400 border-gray-100'
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${incubation.status === 'hatched'
+                    ? 'bg-green-600 text-white border-green-600 shadow-sm'
+                    : incubation.status === 'incubating' || incubation.status === 'active'
+                      ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                      : 'bg-white text-gray-400 border-gray-100'
                     }`}>
-                    {incubation.status === 'incubating' || incubation.status === 'active' ? 'Em curso' : 'Eclodido'}
+                    {incubation.status === 'hatched' ? 'Aguardando Expedição' : (incubation.status === 'incubating' || incubation.status === 'active' ? 'Em curso' : 'Finalizado')}
                   </span>
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lote #{incubation.batchNumber.slice(-4)}</span>
                 </div>

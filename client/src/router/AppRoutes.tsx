@@ -107,8 +107,8 @@ export default function AppRoutes() {
   }
 
   // 2. Mandatory Password Change
-  const isResetPath = window.location.pathname === '/reset-password';
-  if (isAuthenticated && user?.change_password_required && !isResetPath) {
+  const isPublicAuthPath = ['/forgot-password', '/reset-password'].includes(window.location.pathname);
+  if (isAuthenticated && user?.change_password_required && !isPublicAuthPath) {
     return (
       <Switch>
         <Route path="/change-password" component={ChangePassword} />

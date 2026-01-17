@@ -36,8 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 // Then verify/refresh in background
                 try {
-                    // Try /auth/me or fallback to /users/{id}
-                    const res = await supabaseClient.get('/auth/me').catch(async () => {
+                    // Try /me (backend permissions module handles this at /api/me)
+                    const res = await supabaseClient.get('/me').catch(async () => {
                         console.log('DEBUG: /auth/me failed, trying /users/id');
                         return await supabaseClient.get(`/users/${parsed.id}`);
                     });

@@ -33,8 +33,9 @@ export default function ForgotPassword() {
             await forgotPassword(values.email);
             setIsSent(true);
             toast.success("E-mail de recuperação enviado!");
-        } catch (err) {
-            form.setError("root", { message: "Erro ao solicitar recuperação. Tente novamente." });
+        } catch (err: any) {
+            const apiError = err.response?.data?.message || err.message || "Erro desconhecido";
+            form.setError("root", { message: `Falha: ${apiError}` });
         } finally {
             setLoading(false);
         }

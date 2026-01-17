@@ -46,6 +46,28 @@ export const useAuth = () => {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      return await supabaseClient.post("/auth/forgot-password", { email });
+    } catch (error) {
+      const errorMessage =
+        (error as any)?.response?.data?.message || (error as Error).message || "Erro ao solicitar recuperação";
+      showError(errorMessage);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (data: any) => {
+    try {
+      return await supabaseClient.post("/auth/reset-password", data);
+    } catch (error) {
+      const errorMessage =
+        (error as any)?.response?.data?.message || (error as Error).message || "Erro ao redefinir senha";
+      showError(errorMessage);
+      throw error;
+    }
+  };
+
   return {
     user,
     isLoading,
@@ -53,6 +75,8 @@ export const useAuth = () => {
     login,
     signup,
     logout,
+    forgotPassword,
+    resetPassword,
   };
 };
 

@@ -495,7 +495,7 @@ export default function FeedUsage() {
               key={feed.id}
               name={feed.name}
               current={feed.estoque_atual}
-              max={5000} // Assuming 5 tons for visualization max? 
+              max={5000}
               color={feed.name.toLowerCase().includes('postura') ? '#f59e0b' : '#3b82f6'}
             />
           ))}

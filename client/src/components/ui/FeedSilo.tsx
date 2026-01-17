@@ -12,8 +12,9 @@ interface SiloProps {
 export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg', color = '#3b82f6' }) => {
     const percentage = Math.min(100, Math.max(0, (current / max) * 100));
 
-    // Determine status color based on percentage
-    const fillColor = percentage < 20 ? '#ef4444' : percentage < 50 ? '#f59e0b' : color;
+    // Determine status color based on percentage:
+    // Green (> 60%), Yellow (20-60%), Red (< 20%)
+    const fillColor = percentage > 60 ? '#22c55e' : percentage > 20 ? '#f59e0b' : '#ef4444';
 
     return (
         <div className="flex flex-col items-center space-y-3 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">

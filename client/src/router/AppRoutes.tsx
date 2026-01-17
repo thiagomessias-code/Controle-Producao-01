@@ -8,6 +8,7 @@ import Login from "@/pages/Auth/Login";
 import Signup from "@/pages/Auth/Signup";
 import Preload from "@/pages/Auth/Preload";
 import ForgotPassword from "@/pages/Auth/ForgotPassword";
+import ResetPassword from "@/pages/Auth/ResetPassword";
 import { ChangePassword } from '@/pages/Auth/ChangePassword';
 
 // App Pages
@@ -123,6 +124,7 @@ export default function AppRoutes() {
       <Route path="/signup" component={Signup} />
       <Route path="/preload" component={Preload} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/change-password" component={ChangePassword} />
 
       {/* Admin Routes */}

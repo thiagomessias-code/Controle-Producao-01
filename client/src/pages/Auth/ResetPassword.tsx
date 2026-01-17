@@ -32,6 +32,9 @@ export default function ResetPassword() {
             setLocation("/login");
         } else {
             setToken(t);
+            // Clear any stale session to avoid redirect loops or auth errors
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("auth_user");
         }
     }, [setLocation]);
 

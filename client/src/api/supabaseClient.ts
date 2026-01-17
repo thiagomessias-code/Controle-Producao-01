@@ -40,8 +40,8 @@ export class ApiClient {
         if (error.response?.status === 401) {
           localStorage.removeItem('auth_token');
           localStorage.removeItem('auth_user');
-          // Force redirect to login
-          if (window.location.pathname !== '/login') {
+          // Force redirect to login EXCEPT if we are on the reset-password page
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/reset-password') {
             window.location.href = '/login';
           }
         }

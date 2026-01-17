@@ -101,24 +101,27 @@ export class ApiClient {
 
   async get<T = any>(url: string): Promise<T> {
     const mappedUrl = this.mapUrl(url);
-    const response = await this.api.get<T>(mappedUrl);
-    const responseData = (response.data as any).data !== undefined ? (response.data as any).data : response.data;
+    const response = await this.api.get<any>(mappedUrl);
+    const data = response.data;
+    const responseData = (data && data.success !== undefined && data.data !== undefined) ? data.data : data;
     return this.mapToFrontend(responseData, mappedUrl);
   }
 
   async post<T = any>(url: string, data: any): Promise<T> {
     const mappedUrl = this.mapUrl(url);
     const backendData = this.mapToBackend(data, url);
-    const response = await this.api.post<T>(mappedUrl, backendData);
-    const responseData = (response.data as any).data !== undefined ? (response.data as any).data : response.data;
+    const response = await this.api.post<any>(mappedUrl, backendData);
+    const resData = response.data;
+    const responseData = (resData && resData.success !== undefined && resData.data !== undefined) ? resData.data : resData;
     return this.mapToFrontend(responseData, mappedUrl);
   }
 
   async put<T = any>(url: string, data: any): Promise<T> {
     const mappedUrl = this.mapUrl(url);
     const backendData = this.mapToBackend(data, url);
-    const response = await this.api.put<T>(mappedUrl, backendData);
-    const responseData = (response.data as any).data !== undefined ? (response.data as any).data : response.data;
+    const response = await this.api.put<any>(mappedUrl, backendData);
+    const resData = response.data;
+    const responseData = (resData && resData.success !== undefined && resData.data !== undefined) ? resData.data : resData;
     return this.mapToFrontend(responseData, mappedUrl);
   }
 

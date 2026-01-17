@@ -12,7 +12,7 @@ export interface Graphics {
 
 export interface Report {
     id: string;
-    data: string;
+    created_at: string;
     graficos: Graphics[];
     insights: string[];
     alertas: any[];

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { formatCurrency } from "@/utils/format";
 import { useAuth } from '@/hooks/useAuth';
+import { FeedSilo } from '@/components/ui/FeedSilo';
 
 export const AdminFeed: React.FC = () => {
     const { user } = useAuth();
@@ -104,7 +105,15 @@ export const AdminFeed: React.FC = () => {
             setFeedForm(feed);
         } else {
             setEditingFeed(null);
-            setFeedForm({ name: '', phase: 'postura', price_per_kg: 0, supplier_default: '', active: true });
+            setFeedForm({
+                name: '',
+                phase: 'postura',
+                price_per_kg: 0,
+                supplier_default: '',
+                active: true,
+                capacidade_silo: 1000,
+                cor_silo: '#3b82f6'
+            });
         }
         setIsFeedDialogOpen(true);
     };
@@ -213,6 +222,20 @@ export const AdminFeed: React.FC = () => {
                     <TabsContent value="config" className="space-y-6 mt-6">
                         <Card className="border-none shadow-sm hover:shadow-lg transition-all duration-300">
                             <div className="h-1.5 bg-blue-500 w-full rounded-t-2xl"></div>
+                            <div className="p-6 pb-0">
+                                <div className="flex flex-wrap gap-4 justify-start">
+                                    {feedTypes.filter(f => f.active).map(feed => (
+                                        <FeedSilo
+                                            key={feed.id}
+                                            name={feed.name}
+                                            current={feed.estoque_atual}
+                                            max={feed.capacidade_silo || 1000}
+                                            color={feed.cor_silo}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
                             <CardHeader className="flex flex-row justify-between items-center px-6 pt-6">
                                 <CardTitle className="flex items-center gap-3 text-xl">
                                     <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
@@ -327,6 +350,37 @@ export const AdminFeed: React.FC = () => {
                                             onChange={e => setFeedForm({ ...feedForm, supplier_default: e.target.value })}
                                             className="focus:ring-blue-500"
                                         />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-semibold text-gray-700">Capacidade do Silo (Kg)</Label>
+                                            <Input
+                                                type="number"
+                                                value={feedForm.capacidade_silo}
+                                                onChange={e => setFeedForm({ ...feedForm, capacidade_silo: parseFloat(e.target.value) })}
+                                                required
+                                                className="focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm font-semibold text-gray-700">Cor do Silo</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    type="color"
+                                                    value={feedForm.cor_silo}
+                                                    onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
+                                                    className="w-12 h-10 p-1 rounded-lg"
+                                                />
+                                                <Input
+                                                    type="text"
+                                                    value={feedForm.cor_silo}
+                                                    onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
+                                                    className="flex-1 focus:ring-blue-500"
+                                                    placeholder="#3b82f6"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                     <DialogFooter>
                                         <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">Salvar Ração</Button>

@@ -8,6 +8,8 @@ export interface FeedType {
   estoque_atual: number;
   supplier_default?: string;
   active: boolean;
+  capacidade_silo: number;
+  cor_silo: string;
 }
 
 export interface FeedSchedule {
@@ -77,7 +79,9 @@ export const feedApi = {
     return (data || []).map(f => ({
       ...f,
       price_per_kg: f.preco_kg || f.price_per_kg || 0,
-      estoque_atual: f.estoque_atual || 0
+      estoque_atual: f.estoque_atual || 0,
+      capacidade_silo: f.capacidade_silo || 1000,
+      cor_silo: f.cor_silo || '#3b82f6'
     }));
   },
 

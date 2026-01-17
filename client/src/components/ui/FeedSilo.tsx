@@ -9,52 +9,70 @@ interface SiloProps {
     color?: string;
 }
 
-export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg', color = '#3b82f6' }) => {
-    const percentage = Math.min(100, Math.max(0, (current / max) * 100));
+export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg', color }) => {
+    // If max is 0 or invalid, use a safe default to avoid NaN
+    const safeMax = max > 0 ? max : 1000;
+    const percentage = Math.min(100, Math.max(0, (current / safeMax) * 100));
 
-    // Determine status color based on percentage:
-    // Green (> 60%), Yellow (20-60%), Red (< 20%)
-    const fillColor = percentage > 60 ? '#22c55e' : percentage > 20 ? '#f59e0b' : '#ef4444';
+    // Theme color: use provided color or fallback to status-based colors
+    const statusColor = percentage > 60 ? '#22c55e' : percentage > 20 ? '#f59e0b' : '#ef4444';
+    const baseColor = color || statusColor;
+
+    // Low stock indicator (pulse effect if < 15%)
+    const isLow = percentage < 15;
 
     return (
-        <div className="flex flex-col items-center space-y-3 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="relative w-24 h-40 bg-gray-50 rounded-t-[3rem] rounded-b-2xl border-4 border-gray-100 shadow-inner overflow-hidden group">
-                {/* Glass effect reflection */}
-                <div className="absolute top-0 left-4 w-2 h-full bg-white/10 skew-x-12 z-20 pointer-events-none" />
+        <div className="flex flex-col items-center space-y-3 p-5 bg-white rounded-[2.5rem] border border-orange-50/50 shadow-xl shadow-orange-100/20 hover:shadow-2xl hover:shadow-orange-200/30 transition-all duration-500 group min-w-[140px]">
+            <div className={`relative w-24 h-44 bg-gray-50 rounded-t-[3rem] rounded-b-3xl border-4 border-white shadow-2xl overflow-hidden ${isLow && percentage > 0 ? 'ring-2 ring-red-400 ring-offset-2 animate-pulse' : ''}`}>
+
+                {/* Metallic effect overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-transparent to-black/5 pointer-events-none z-30" />
 
                 {/* Level visualization */}
                 <div
                     className="absolute bottom-0 w-full transition-all duration-1000 ease-in-out"
                     style={{
                         height: `${percentage}%`,
-                        backgroundColor: fillColor,
-                        boxShadow: `0 0 20px ${fillColor}44`
+                        background: `linear-gradient(180deg, ${baseColor} 0%, ${baseColor}dd 100%)`,
+                        boxShadow: `0 -4px 15px ${baseColor}44`
                     }}
                 >
-                    {/* Liquid surface wave */}
-                    <div className="absolute -top-1 left-0 w-full h-2 bg-black/5 rounded-full" />
+                    {/* Liquid surface wave with animation support via CSS if needed, 
+                        or just a stylized top edge */}
+                    <div className="absolute -top-2 left-0 w-full h-4 bg-black/10 blur-sm rounded-full opacity-50" />
+                    <div className="absolute -top-1 left-0 w-full h-2 bg-white/20 rounded-full" />
 
-                    {/* Animated bubbles */}
-                    <div className="absolute bottom-4 left-4 w-1 h-1 bg-white/20 rounded-full animate-bounce delay-75" />
-                    <div className="absolute bottom-10 right-6 w-1.5 h-1.5 bg-white/20 rounded-full animate-bounce" />
-                    <div className="absolute bottom-20 left-8 w-1 h-1 bg-white/20 rounded-full animate-bounce delay-150" />
+                    {/* Glossy Reflection */}
+                    <div className="absolute top-0 left-2 w-4 h-full bg-white/10 blur-md z-10" />
                 </div>
 
                 {/* Percentage Text Overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-                    <span className="text-xl font-black text-gray-900 drop-shadow-sm">
-                        {percentage.toFixed(0)}%
-                    </span>
-                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Nível</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
+                    <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-lg border border-white/50 transform group-hover:scale-110 transition-transform duration-500">
+                        <span className="text-xl font-black text-gray-900 leading-none block text-center">
+                            {percentage.toFixed(0)}%
+                        </span>
+                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-center block mt-1">Nível</span>
+                    </div>
                 </div>
+
+                {/* Glass effect reflection */}
+                <div className="absolute top-0 right-4 w-6 h-full bg-white/10 skew-x-[-15deg] z-20 pointer-events-none" />
             </div>
 
-            <div className="text-center space-y-1">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{name}</p>
-                <p className="text-lg font-black text-gray-900 leading-none">
-                    {current.toLocaleString('pt-BR')}
-                    <span className="text-xs font-bold text-gray-400 ml-1 uppercase">{unit}</span>
-                </p>
+            <div className="text-center space-y-2">
+                <div className="px-3 py-1 bg-gray-50 rounded-full inline-block">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em]">{name}</p>
+                </div>
+                <div className="flex flex-col items-center">
+                    <p className="text-xl font-black text-gray-900 leading-none">
+                        {current.toLocaleString('pt-BR')}
+                        <span className="text-[10px] font-bold text-gray-400 ml-1 uppercase">{unit}</span>
+                    </p>
+                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1 opacity-60">
+                        de {safeMax.toLocaleString('pt-BR')} {unit}
+                    </p>
+                </div>
             </div>
         </div>
     );

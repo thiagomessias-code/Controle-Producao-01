@@ -184,7 +184,7 @@ export const AdminReports: React.FC = () => {
                                 <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
                             </h2>
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                                {report ? `Atualizado ${format(new Date(report.data), "HH:mm 'de' dd/MM", { locale: ptBR })}` : 'Aguardando Análise'}
+                                {report ? `Atualizado ${format(new Date(report.created_at), "HH:mm 'de' dd/MM", { locale: ptBR })}` : 'Aguardando Análise'}
                             </p>
                         </div>
                     </div>

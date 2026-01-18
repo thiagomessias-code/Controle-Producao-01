@@ -69,8 +69,6 @@ export default function TaskAction() {
         return <div className="p-8 text-center">Carregando informações do lote...</div>;
     }
 
-    const taskTitle = getGenericTaskName(taskType);
-
     return (
         <div className="max-w-md mx-auto mt-8 px-4">
             <Card>

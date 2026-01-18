@@ -495,7 +495,7 @@ export default function FeedUsage() {
               key={feed.id}
               name={feed.name}
               current={feed.estoque_atual}
-              max={feed.capacidade_silo || 5000}
+              max={feed.capacidade_silo}
               color={feed.cor_silo}
             />
           ))}

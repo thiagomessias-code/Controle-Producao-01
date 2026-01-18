@@ -5,6 +5,7 @@ export interface FeedType {
   name: string;
   phase: string;
   preco_kg: number;
+  price_per_kg: number; // Mandatory frontend alias
   estoque_atual: number;
   supplier_default?: string;
   active: boolean;

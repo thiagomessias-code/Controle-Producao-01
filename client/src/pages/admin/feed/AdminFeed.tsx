@@ -229,7 +229,7 @@ export const AdminFeed: React.FC = () => {
                                             key={feed.id}
                                             name={feed.name}
                                             current={feed.estoque_atual}
-                                            max={feed.capacidade_silo || 1000}
+                                            max={feed.capacidade_silo}
                                             color={feed.cor_silo}
                                         />
                                     ))}
@@ -271,7 +271,7 @@ export const AdminFeed: React.FC = () => {
                                                     </td>
                                                     <td className="p-4 font-bold text-gray-900 flex items-center gap-3">
                                                         <div className="w-16 text-right">{feed.estoque_atual.toFixed(1)}</div>
-                                                        <Button size="xs" variant="outline" className="h-7 px-2 text-[10px] border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => openResupplyDialog(feed)}>
+                                                        <Button size="sm" variant="outline" className="h-7 px-2 text-[10px] border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => openResupplyDialog(feed)}>
                                                             Abastecer
                                                         </Button>
                                                     </td>

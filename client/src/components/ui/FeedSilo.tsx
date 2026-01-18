@@ -12,18 +12,20 @@ interface SiloProps {
 export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg', color }) => {
     // If max is 0 or invalid, use a safe default to avoid NaN
     const safeMax = max > 0 ? max : 1000;
-    const percentage = Math.min(100, Math.max(0, (current / safeMax) * 100));
+    // Calculate percentage, but ensure a minimum visual height of 2% if there is any stock
+    const rawPercentage = (current / safeMax) * 100;
+    const percentage = current > 0 ? Math.max(2, Math.min(100, rawPercentage)) : 0;
 
-    // Theme color: use provided color or fallback to status-based colors
-    const statusColor = percentage > 60 ? '#22c55e' : percentage > 20 ? '#f59e0b' : '#ef4444';
+    // Theme color: reflect the ACTUAL level (percentage)
+    const statusColor = rawPercentage > 60 ? '#22c55e' : rawPercentage > 15 ? '#f59e0b' : '#ef4444';
     const baseColor = color || statusColor;
 
-    // Low stock indicator (pulse effect if < 15%)
-    const isLow = percentage < 15;
+    // Low stock indicator (pulse effect if < 10% or absolute low)
+    const isLow = rawPercentage < 10 || (current < 50 && unit === 'kg');
 
     return (
         <div className="flex flex-col items-center space-y-3 p-5 bg-white rounded-[2.5rem] border border-orange-50/50 shadow-xl shadow-orange-100/20 hover:shadow-2xl hover:shadow-orange-200/30 transition-all duration-500 group min-w-[140px]">
-            <div className={`relative w-24 h-44 bg-gray-50 rounded-t-[3rem] rounded-b-3xl border-4 border-white shadow-2xl overflow-hidden ${isLow && percentage > 0 ? 'ring-2 ring-red-400 ring-offset-2 animate-pulse' : ''}`}>
+            <div className={`relative w-24 h-44 bg-gray-50 rounded-t-[3rem] rounded-b-3xl border-4 border-white shadow-2xl overflow-hidden ${isLow && current > 0 ? 'ring-2 ring-red-400 ring-offset-2 animate-pulse' : ''}`}>
 
                 {/* Metallic effect overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-transparent to-black/5 pointer-events-none z-30" />
@@ -46,13 +48,15 @@ export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg',
                     <div className="absolute top-0 left-2 w-4 h-full bg-white/10 blur-md z-10" />
                 </div>
 
-                {/* Percentage Text Overlay */}
+                {/* Quantity Text Overlay */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center z-40 pointer-events-none">
-                    <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-lg border border-white/50 transform group-hover:scale-110 transition-transform duration-500">
-                        <span className="text-xl font-black text-gray-900 leading-none block text-center">
-                            {percentage.toFixed(0)}%
+                    <div className="bg-white/90 backdrop-blur-md px-2 py-1.5 rounded-2xl shadow-lg border border-white/50 transform group-hover:scale-110 transition-transform duration-500 min-w-[60px]">
+                        <span className="text-lg font-black text-gray-900 leading-none block text-center">
+                            {current.toLocaleString('pt-BR')}
                         </span>
-                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-center block mt-1">Nível</span>
+                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-[0.2em] text-center block mt-1">
+                            {unit === 'kg' ? 'Quilos' : unit}
+                        </span>
                     </div>
                 </div>
 

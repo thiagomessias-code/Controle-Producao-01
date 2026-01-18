@@ -47,8 +47,10 @@ export const useAuth = () => {
   };
 
   const forgotPassword = async (email: string) => {
+    const url = "/auth/password-reset/request";
+    console.log(`[DEBUG-AUTH] Calling URL: ${url} for email: ${email}`);
     try {
-      return await supabaseClient.post("/auth/password-reset/request", { email });
+      return await supabaseClient.post(url, { email });
     } catch (error) {
       const errorMessage =
         (error as any)?.response?.data?.message || (error as Error).message || "Erro ao solicitar recuperação";

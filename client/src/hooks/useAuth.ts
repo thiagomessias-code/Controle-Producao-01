@@ -48,7 +48,7 @@ export const useAuth = () => {
 
   const forgotPassword = async (email: string) => {
     try {
-      return await supabaseClient.post("/auth/forgot-password", { email });
+      return await supabaseClient.post("/auth/password-reset/request", { email });
     } catch (error) {
       const errorMessage =
         (error as any)?.response?.data?.message || (error as Error).message || "Erro ao solicitar recuperação";
@@ -59,7 +59,7 @@ export const useAuth = () => {
 
   const resetPassword = async (data: any) => {
     try {
-      return await supabaseClient.post("/auth/reset-password", data);
+      return await supabaseClient.post("/auth/password-reset/confirm", data);
     } catch (error) {
       const errorMessage =
         (error as any)?.response?.data?.message || (error as Error).message || "Erro ao redefinir senha";

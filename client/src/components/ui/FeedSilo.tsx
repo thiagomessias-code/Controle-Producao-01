@@ -10,8 +10,9 @@ interface SiloProps {
 }
 
 export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg', color }) => {
-    // If max is 0 or invalid, use a safe default to avoid NaN
-    const safeMax = max > 0 ? max : 1000;
+    // Determine the max capacity. If provided value is > 500 or <= 0, default to 50 as requested.
+    const safeMax = (max > 0 && max <= 500) ? max : 50;
+
     // Calculate percentage, but ensure a minimum visual height of 2% if there is any stock
     const rawPercentage = (current / safeMax) * 100;
     const percentage = current > 0 ? Math.max(2, Math.min(100, rawPercentage)) : 0;
@@ -25,7 +26,9 @@ export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg',
     };
 
     const statusColor = getStatusColor();
-    const baseColor = color && color !== '#3b82f6' ? color : statusColor;
+    // Prioritize Status Color for the level fill (Nível), use the 'color' prop only as a fallback or for other UI elements if needed.
+    // User specifically wants Green/Yellow/Red status colors for the level.
+    const baseColor = statusColor;
 
     // Low stock indicator (pulse effect if < 25%)
     const isLow = rawPercentage < 25 || (current < 15 && unit === 'kg');

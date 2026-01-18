@@ -9,7 +9,7 @@ export interface Production {
   quantity: number;
   weight?: number;
   quality: "A" | "B" | "C";
-  destination: "Venda" | "Consumo" | "Incubação" | "Outros";
+  destination: "Venda" | "Consumo" | "Incubação" | "Perda" | "Outros";
   eggType?: "fertile" | "table";
   notes?: string;
   userName?: string;
@@ -25,7 +25,7 @@ export interface CreateProductionRequest {
   quantity: number;
   weight?: number;
   quality: "A" | "B" | "C";
-  destination: "Venda" | "Consumo" | "Incubação" | "Outros";
+  destination: "Venda" | "Consumo" | "Incubação" | "Perda" | "Outros";
   eggType?: "fertile" | "table";
   notes?: string;
   userId?: string;
@@ -66,6 +66,7 @@ export const productionApi = {
       "Venda": "venda",
       "Consumo": "consumo_proprio",
       "Incubação": "incubacao",
+      "Perda": "perda",
       "Outros": "venda", // Fallback
     };
 

@@ -3,11 +3,18 @@ import { useBatches } from "@/hooks/useBatches";
 import { useGroups } from "@/hooks/useGroups";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useAppStore } from "@/hooks/useAppStore";
+import { useAuth } from "@/hooks/useAuth";
 import { feedApi, FeedConfiguration } from "@/api/feed";
 import { supabase } from "@/api/supabaseClient";
 import { getLocalISODate } from "@/utils/date";
 
+/**
+ * NotificationScheduler
+ * Background component that manages daily routines, scheduled tasks,
+ * and synchronizes them with the device's notification system and database.
+ */
 export default function NotificationScheduler() {
+  const { user } = useAuth();
   const { batches } = useBatches();
   const { groups } = useGroups();
   const { scheduleRoutine, sendNotification } = useNotifications();
@@ -17,7 +24,7 @@ export default function NotificationScheduler() {
 
   const prevPendingCount = useRef(pendingTasks.length);
 
-  // Initial cleanup if cache is bloated
+  // 1. Initial cleanup if cache is bloated (maintenance)
   useEffect(() => {
     if (pendingTasks.length > 500 || todos.length > 500) {
       console.log(`[NotificationScheduler] Bloated cache detected (${pendingTasks.length} tasks). Clearing...`);
@@ -25,6 +32,7 @@ export default function NotificationScheduler() {
     }
   }, []);
 
+  // 2. Fetch configurations and templates from DB
   useEffect(() => {
     Promise.all([
       feedApi.getConfigurations(),
@@ -32,12 +40,13 @@ export default function NotificationScheduler() {
     ]).then(([feedConfigs, templatesRes]) => {
       setConfigs(feedConfigs);
       setTemplates(templatesRes.data || []);
-    }).catch(console.error);
+    }).catch(err => console.error("[NotificationScheduler] Fetch error:", err));
   }, []);
 
-  // Filter for active batches/groups to schedule notifications for
+  // Filter for active batches to schedule notifications for
   const activeBatches = useMemo(() => batches?.filter(b => b.status === 'active') || [], [batches]);
 
+  // 3. Main Scheduling Logic
   useEffect(() => {
     if (activeBatches.length === 0 || (configs.length === 0 && templates.length === 0)) return;
 
@@ -50,7 +59,7 @@ export default function NotificationScheduler() {
       const group = groups.find(g => g.id === batch.groupId);
       if (!group) return;
 
-      // Normalize type
+      // Normalize type for configuration matching
       let type = (group.type || '').toLowerCase();
       if (type.includes('prod') || type.includes('postura')) type = 'production';
       else if (type.includes('macho')) type = 'males';
@@ -59,35 +68,62 @@ export default function NotificationScheduler() {
       const scheduleOrAdd = (timeStr: string, taskType: string, title: string) => {
         if (!timeStr || !timeStr.includes(':')) return;
 
-        const actionUrl = `/tasks/execute?batchId=${batch.id}&task=${taskType}&time=${timeStr}`;
-        const taskKey = `${title}-${today}`;
+        const actionUrl = `/tasks/execute?batchId=${batch.id}&lockTask=${taskType}&time=${timeStr}`;
 
-        // 1. Immediate Add if past time but not yet in store for today
-        if (timeStr <= currentHHmm) {
-          const exists = todos.some(t => {
-            // Check by title and exact same date
-            return t.task === title && t.dueDate === today;
-          });
-
-          if (!exists) {
-            console.log(`[NotificationScheduler] Catching missed task: ${title} at ${timeStr}`);
-            addTodo(title, today, true);
-            addPendingTask(title, actionUrl);
-          }
+        // 1. Add to Checklist (Todos) for TODAY if not exists (Upcoming visibility)
+        const existsInTodos = todos.some(t => t.task === title && t.dueDate === today);
+        if (!existsInTodos) {
+          console.log(`[NotificationScheduler] New daily task added to checklist: ${title}`);
+          addTodo(title, today, true);
         }
 
-        // 2. Schedule for later today or tomorrow
+        // 2. Alert/Pending Logic: Trigger if time has passed OR is reached
+        const checkTrigger = () => {
+          const isDone = todos.find(t => t.task === title && t.dueDate === today)?.isCompleted;
+          if (isDone) return; // Skip if already completed
+
+          const isAlreadyPending = pendingTasks.some(t => t.title === title && getLocalISODate(new Date(t.timestamp)) === today);
+
+          if (!isAlreadyPending) {
+            console.log(`[NotificationScheduler] Triggering alert for: ${title}`);
+            addPendingTask(title, actionUrl);
+
+            // SYNCHRONIZATION WITH DATABASE NOTIFICATIONS (Multi-device)
+            if (user?.id) {
+              const msg = `🕒 Tarefa Agendada: ${title}`;
+              // Use a unique check to avoid flooding if refresh happens
+              supabase.from('notificacoes')
+                .select('id')
+                .eq('usuario_id', user.id)
+                .eq('mensagem', msg)
+                .gte('created_at', today + 'T00:00:00')
+                .then(({ data }) => {
+                  if (!data || data.length === 0) {
+                    supabase.from('notificacoes').insert({
+                      usuario_id: user.id,
+                      mensagem: msg,
+                      nivel: 'warning',
+                      lida: false
+                    }).catch(e => console.error("[NotificationScheduler] DB sync fail:", e));
+                  }
+                });
+            }
+          }
+        };
+
+        // 2a. Catch-up (if time passed today)
+        if (timeStr <= currentHHmm) {
+          checkTrigger();
+        }
+
+        // 2b. Live Scheduling (using timeout)
         const [h, m] = timeStr.split(':').map(Number);
         scheduleRoutine(h, m || 0, title, actionUrl, () => {
-          const checkExists = todos.some(t => t.task === title && t.dueDate === today);
-          if (!checkExists) {
-            addTodo(title, today, true);
-            addPendingTask(title, actionUrl);
-          }
+          checkTrigger();
         });
       };
 
-      // 1. Automate feeding based on Admin-defined Feed Configurations
+      // Source A: Feed Configurations
       const config = configs.find(c => c.group_type === type && c.active);
       if (config) {
         config.schedule_times.forEach(time => {
@@ -95,7 +131,7 @@ export default function NotificationScheduler() {
         });
       }
 
-      // 2. Automate routines based on Admin-defined Task Templates
+      // Source B: Generic Task Templates
       const relevantTemplates = templates.filter(tmpl => {
         if (!tmpl.target_group) return true; // Global
         return tmpl.target_group === type;
@@ -105,27 +141,16 @@ export default function NotificationScheduler() {
         scheduleOrAdd(tmpl.default_time, tmpl.task_type || 'custom', `${tmpl.title} - ${batch.name} 📋`);
       });
     });
-  }, [activeBatches, groups, configs, templates]);
+  }, [activeBatches, groups, configs, templates, user?.id]);
 
-  // Watch pending tasks to trigger notifications
+  // 4. Handle Browser Notifications (Visual/Audio)
   useEffect(() => {
     const count = pendingTasks.length;
     const prev = prevPendingCount.current;
 
     if (count > prev) {
-      // New task added
-      if (count === 1) {
-        // First task: send specific notification
-        const task = pendingTasks[0];
-        sendNotification(task.title, { body: "Nova tarefa agendada" }, task.actionUrl);
-      } else {
-        // Multiple tasks: send aggregated notification
-        sendNotification(
-          "Tarefas Pendentes 📋",
-          { body: `Você tem ${count} notificações em fila. Clique para ver.` },
-          "/tasks/list"
-        );
-      }
+      const task = pendingTasks[count - 1]; // Only notify the latest one
+      sendNotification(task.title, { body: "Tarefa diária agendada aguardando você." }, task.actionUrl);
     }
 
     prevPendingCount.current = count;

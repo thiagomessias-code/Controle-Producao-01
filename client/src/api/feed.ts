@@ -76,14 +76,22 @@ export const feedApi = {
       .eq('active', true)
       .order('name');
     if (error) throw error;
-    // Map preco_kg if the backend returned price_per_kg or vice versa
-    return (data || []).map(f => ({
-      ...f,
-      price_per_kg: f.preco_kg || f.price_per_kg || 0,
-      estoque_atual: f.estoque_atual || 0,
-      capacidade_silo: (f.capacidade_silo && f.capacidade_silo <= 500) ? f.capacidade_silo : 50,
-      cor_silo: f.cor_silo || '#3b82f6'
-    }));
+
+    return (data || []).map(f => {
+      // Ensure numeric values
+      const cap = Number(f.capacidade_silo || 0);
+      const stock = Number(f.estoque_atual || 0);
+      const price = Number(f.preco_kg || f.price_per_kg || 0);
+
+      return {
+        ...f,
+        price_per_kg: price,
+        estoque_atual: stock,
+        // If capacity is 0, > 500, or missing, default to 50 as requested
+        capacidade_silo: (cap > 0 && cap <= 500) ? cap : 50,
+        cor_silo: f.cor_silo || '#3b82f6'
+      };
+    });
   },
 
   createFeedType: async (feed: Partial<FeedType>): Promise<FeedType> => {

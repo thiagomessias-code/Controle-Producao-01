@@ -10,11 +10,15 @@ import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { productionApi } from "@/api/production";
+import { mortalityApi } from "@/api/mortality";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function WarehouseDashboard() {
     const [, setLocation] = useLocation();
     const { inventory, isLoading: isWarehouseLoading, processSale } = useWarehouse();
     const { groups, isLoading: isGroupsLoading } = useGroups();
+    const { user } = useAuth();
 
     const [isAdjusting, setIsAdjusting] = useState(false);
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -267,7 +271,39 @@ export default function WarehouseDashboard() {
                                     // But since we built the list manually in the component, we should probably pass the data.
                                     // For now, use titles/desc matching.
 
-                                    await processSale(type, subtype, qty, adjustData.type);
+                                    const originsUsed = await processSale(type, subtype, qty, adjustData.type);
+
+                                    // If it's a loss, sync with history
+                                    if (adjustData.type === 'perda' && originsUsed && originsUsed.length > 0) {
+                                        for (const origin of originsUsed) {
+                                            if (type === 'egg') {
+                                                await productionApi.create({
+                                                    groupId: origin.groupId,
+                                                    cageId: origin.cageId,
+                                                    batchId: origin.batchId,
+                                                    date: new Date().toISOString(),
+                                                    quantity: origin.quantity,
+                                                    quality: "A",
+                                                    destination: "Perda",
+                                                    notes: `Perda no Armazém (${subtype}): ${adjustData.reason || "Sem motivo informado"}.`,
+                                                    userId: user?.id
+                                                });
+                                            } else if (type === 'chick') {
+                                                await mortalityApi.create({
+                                                    groupId: origin.groupId,
+                                                    cageId: origin.cageId,
+                                                    batchId: origin.batchId,
+                                                    date: new Date().toISOString(),
+                                                    quantity: origin.quantity,
+                                                    cause: "Perda no Armazém",
+                                                    notes: `${subtype}: ${adjustData.reason || "Sem motivo informado"}.`,
+                                                    userId: user?.id,
+                                                    skipSync: true // Don't subtract from cage again
+                                                });
+                                            }
+                                        }
+                                    }
+
                                     toast.success("Ajuste realizado com sucesso!");
                                     setIsAdjusting(false);
                                 } catch (err: any) {

@@ -8,12 +8,12 @@ import { useBatchById } from "@/hooks/useBatches";
 export default function TaskAction() {
     const [location, setLocation] = useLocation();
     const searchParams = new URLSearchParams(window.location.search);
-    const batchId = searchParams.get("groupId"); // URL param still named groupId for now
-    const taskType = searchParams.get("task"); // 'feed', 'water', 'egg'
+    const batchId = searchParams.get("batchId") || searchParams.get("groupId");
+    const taskType = searchParams.get("lockTask") || searchParams.get("task");
     const time = searchParams.get("time");
 
     const { batch, isLoading } = useBatchById(batchId || "");
-    const { todos, toggleTodo } = useAppStore();
+    const { todos, toggleTodo, pendingTasks, removePendingTask } = useAppStore();
     const [isConfirming, setIsConfirming] = useState(false);
 
     // Map taskType to generic Todo task name
@@ -22,26 +22,36 @@ export default function TaskAction() {
             case "feed": return "Alimentação";
             case "water": return "Água";
             case "egg": return "Coleta de ovos";
-            default: return "Outros cuidados diários";
+            default: return "Cuidado diário";
         }
     };
+
+    const taskTitle = getGenericTaskName(taskType);
 
     const handleConfirm = () => {
         setIsConfirming(true);
 
-        // Find the generic todo item and mark it as completed if not already
-        const genericTaskName = getGenericTaskName(taskType);
-        const todo = todos.find(t => t.task === genericTaskName && t.isAutomatic);
-
+        // 1. Mark as completed in Todos (Checklist)
+        // Find by title being contained in the todo task (since titles are dynamic e.g. "Alimentar Lote...")
+        const todo = todos.find(t => t.task.includes(batch?.name || '') && t.task.includes(taskTitle));
         if (todo && !todo.isCompleted) {
             toggleTodo(todo.id);
+        }
+
+        // 2. Remove from Pending Tasks if it was there
+        const pending = pendingTasks.find(p => p.title.includes(batch?.name || '') && p.title.includes(taskTitle));
+        if (pending) {
+            removePendingTask(pending.id);
         }
 
         // Simulate API call or delay
         setTimeout(() => {
             setIsConfirming(false);
-            setLocation("/");
-        }, 1000);
+            // If it's feeding, go to feed page, otherwise home
+            if (taskType === 'feed') setLocation("/feed");
+            else if (taskType === 'egg') setLocation("/production/register");
+            else setLocation("/");
+        }, 800);
     };
 
     if (!batchId || !taskType) {

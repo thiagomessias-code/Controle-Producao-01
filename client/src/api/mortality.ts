@@ -23,6 +23,7 @@ export interface CreateMortalityRequest {
   cause: string;
   notes?: string;
   userId?: string;
+  skipSync?: boolean; // Support recording history without cage deduction
 }
 
 export interface UpdateMortalityRequest extends Partial<CreateMortalityRequest> { }
@@ -56,7 +57,8 @@ export const mortalityApi = {
       quantidade: data.quantity,
       causa: data.cause,
       observacoes: data.notes,
-      usuario_id: data.userId
+      usuario_id: data.userId,
+      skip_sync: data.skipSync
     };
     const res = await supabaseClient.post("/mortality", payload);
     return mapToFrontend(res);

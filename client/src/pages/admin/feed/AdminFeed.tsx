@@ -111,7 +111,7 @@ export const AdminFeed: React.FC = () => {
                 price_per_kg: 0,
                 supplier_default: '',
                 active: true,
-                capacidade_silo: 1000,
+                capacidade_silo: 50,
                 cor_silo: '#3b82f6'
             });
         }

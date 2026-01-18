@@ -42,11 +42,20 @@ const QRCodeViewer = ({
             <head>
               <title>${title}</title>
               <style>
-                body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-                img { max-width: 100%; }
+                body { 
+                  display: flex; 
+                  flex-direction: column;
+                  align-items: center; 
+                  justify-content: center; 
+                  min-height: 100vh; 
+                  font-family: sans-serif;
+                }
+                h1 { margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+                img { max-width: 100%; border: 1px solid #eee; padding: 10px; }
               </style>
             </head>
             <body>
+              <h1>${title}</h1>
               <img src="${url}" />
             </body>
           </html>
@@ -59,7 +68,10 @@ const QRCodeViewer = ({
 
   return (
     <div className="flex flex-col items-center gap-6 p-6 bg-card rounded-lg border border-border">
-      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+      <div className="text-center">
+        <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">{title}</h3>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-1">Identificador de Alojamento</p>
+      </div>
       <div
         ref={qrRef}
         className="p-4 bg-white rounded-lg shadow-md"

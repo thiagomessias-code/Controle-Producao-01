@@ -81,7 +81,7 @@ export const feedApi = {
       ...f,
       price_per_kg: f.preco_kg || f.price_per_kg || 0,
       estoque_atual: f.estoque_atual || 0,
-      capacidade_silo: f.capacidade_silo || 1000,
+      capacidade_silo: (f.capacidade_silo && f.capacidade_silo <= 500) ? f.capacidade_silo : 50,
       cor_silo: f.cor_silo || '#3b82f6'
     }));
   },

@@ -16,12 +16,19 @@ export const FeedSilo: React.FC<SiloProps> = ({ name, current, max, unit = 'kg',
     const rawPercentage = (current / safeMax) * 100;
     const percentage = current > 0 ? Math.max(2, Math.min(100, rawPercentage)) : 0;
 
-    // Theme color: reflect the ACTUAL level (percentage)
-    const statusColor = rawPercentage > 60 ? '#22c55e' : rawPercentage > 15 ? '#f59e0b' : '#ef4444';
-    const baseColor = color || statusColor;
+    // Color thresholds: Green (>60%), Yellow (30-60%), Orange (15-30%), Red (<15%)
+    const getStatusColor = () => {
+        if (rawPercentage > 60) return '#22c55e'; // Green
+        if (rawPercentage > 30) return '#eab308'; // Yellow
+        if (rawPercentage > 15) return '#f97316'; // Orange
+        return '#ef4444'; // Red
+    };
 
-    // Low stock indicator (pulse effect if < 10% or absolute low)
-    const isLow = rawPercentage < 10 || (current < 50 && unit === 'kg');
+    const statusColor = getStatusColor();
+    const baseColor = color && color !== '#3b82f6' ? color : statusColor;
+
+    // Low stock indicator (pulse effect if < 25%)
+    const isLow = rawPercentage < 25 || (current < 15 && unit === 'kg');
 
     return (
         <div className="flex flex-col items-center space-y-3 p-5 bg-white rounded-[2.5rem] border border-orange-50/50 shadow-xl shadow-orange-100/20 hover:shadow-2xl hover:shadow-orange-200/30 transition-all duration-500 group min-w-[140px]">

@@ -41,6 +41,10 @@ export default function NotificationScheduler() {
   useEffect(() => {
     if (activeBatches.length === 0 || (configs.length === 0 && templates.length === 0)) return;
 
+    const now = new Date();
+    const currentHHmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const today = getLocalISODate();
+
     activeBatches.forEach((batch) => {
       // Find group for this batch
       const group = groups.find(g => g.id === batch.groupId);
@@ -52,17 +56,31 @@ export default function NotificationScheduler() {
       else if (type.includes('macho')) type = 'males';
       else if (type.includes('reprod') || type.includes('matriz')) type = 'breeders';
 
-      const schedule = (timeStr: string, taskType: string, title: string) => {
+      const scheduleOrAdd = (timeStr: string, taskType: string, title: string) => {
         if (!timeStr || !timeStr.includes(':')) return;
-        const [h, m] = timeStr.split(':').map(Number);
-        const actionUrl = `/tasks/execute?batchId=${batch.id}&task=${taskType}&time=${timeStr}`;
 
-        scheduleRoutine(h, m || 0, title, actionUrl, () => {
-          // Check if this specific todo already exists for today
-          const today = getLocalISODate();
-          const exists = todos.some(t => t.task === title && t.dueDate === today);
+        const actionUrl = `/tasks/execute?batchId=${batch.id}&task=${taskType}&time=${timeStr}`;
+        const taskKey = `${title}-${today}`;
+
+        // 1. Immediate Add if past time but not yet in store for today
+        if (timeStr <= currentHHmm) {
+          const exists = todos.some(t => {
+            // Check by title and exact same date
+            return t.task === title && t.dueDate === today;
+          });
 
           if (!exists) {
+            console.log(`[NotificationScheduler] Catching missed task: ${title} at ${timeStr}`);
+            addTodo(title, today, true);
+            addPendingTask(title, actionUrl);
+          }
+        }
+
+        // 2. Schedule for later today or tomorrow
+        const [h, m] = timeStr.split(':').map(Number);
+        scheduleRoutine(h, m || 0, title, actionUrl, () => {
+          const checkExists = todos.some(t => t.task === title && t.dueDate === today);
+          if (!checkExists) {
             addTodo(title, today, true);
             addPendingTask(title, actionUrl);
           }
@@ -73,22 +91,21 @@ export default function NotificationScheduler() {
       const config = configs.find(c => c.group_type === type && c.active);
       if (config) {
         config.schedule_times.forEach(time => {
-          schedule(time, "feed", `Alimentar ${batch.name} (${group.name}) 🌾`);
+          scheduleOrAdd(time, "feed", `Alimentar ${batch.name} (${group.name}) 🌾`);
         });
       }
 
       // 2. Automate routines based on Admin-defined Task Templates
-      // Filter templates that apply to this group or are global
       const relevantTemplates = templates.filter(tmpl => {
         if (!tmpl.target_group) return true; // Global
         return tmpl.target_group === type;
       });
 
       relevantTemplates.forEach(tmpl => {
-        schedule(tmpl.default_time, tmpl.task_type || 'custom', `${tmpl.title} - ${batch.name} 📋`);
+        scheduleOrAdd(tmpl.default_time, tmpl.task_type || 'custom', `${tmpl.title} - ${batch.name} 📋`);
       });
     });
-  }, [activeBatches, groups, configs, templates, scheduleRoutine, addPendingTask, addTodo, todos]);
+  }, [activeBatches, groups, configs, templates]);
 
   // Watch pending tasks to trigger notifications
   useEffect(() => {

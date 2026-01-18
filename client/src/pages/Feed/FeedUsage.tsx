@@ -415,9 +415,9 @@ export default function FeedUsage() {
         notes: `${formData.notes} (Registrado por ${user?.name || 'Sistema'})`,
       });
 
-      // Cleanup
+      // Cleanup specific task for this batch
       const relatedTask = pendingTasks.find(task =>
-        task.actionUrl.includes(formData.groupId) && task.actionUrl.includes('feed')
+        task.actionUrl.includes(formData.batchId) && task.actionUrl.includes('feed')
       );
       if (relatedTask) removePendingTask(relatedTask.id);
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useSales } from "@/hooks/useSales";
 import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
+import { PRODUCT_TRANSFORMATION_RULES } from "@/api/warehouse";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { formatCurrency } from "@/utils/format";
@@ -86,7 +87,15 @@ export default function RegisterSale() {
   // Helper: Get Available Stock for Eggs/Meat
   // Helper: Get Available Stock for Eggs/Meat/Animals
   const getAvailableStock = (name: string) => {
-    const target = name.toLowerCase();
+    let target = name.toLowerCase();
+
+    // Check for Transformation Rules
+    const rule = PRODUCT_TRANSFORMATION_RULES[name];
+    if (rule) {
+      return inventory
+        .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
+        .reduce((acc, i) => acc + i.quantity, 0);
+    }
 
     // Logic for Chicks (Pintos) - Use Warehouse Inventory as requested
     // Previously we summed active groups, but user stated stock is in Warehouse (Armazém).
@@ -120,6 +129,14 @@ export default function RegisterSale() {
 
   // Helper: Get FIFO Suggestions (Oldest Batches First)
   const getFifoSuggestions = (productName: string) => {
+    const rule = PRODUCT_TRANSFORMATION_RULES[productName];
+    if (rule) {
+      return inventory
+        .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
+        .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime())
+        .slice(0, 3);
+    }
+
     const target = productName.toLowerCase().replace(/s$/, ""); // Normalize
 
     return inventory
@@ -206,27 +223,34 @@ export default function RegisterSale() {
       let originTag = "";
       if (isEgg || isMeat || isLive) {
         let stockSubtype = selectedProduct.nome;
+        let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : 'meat');
 
-        // Find the EXACT subtype present in inventory to avoid mismatch during processSale
-        const availableItems = inventory.filter(i => {
-          if (i.status !== "in_stock") return false;
-          const invName = (i.subtype || "").toLowerCase();
-          const target = selectedProduct.nome.toLowerCase();
+        // Check for Transformation Rules
+        const rule = PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome];
+        if (rule) {
+          stockType = rule.type;
+          stockSubtype = rule.subtype;
+        } else {
+          // Find the EXACT subtype present in inventory to avoid mismatch during processSale
+          const availableItems = inventory.filter(i => {
+            if (i.status !== "in_stock") return false;
+            const invName = (i.subtype || "").toLowerCase();
+            const target = selectedProduct.nome.toLowerCase();
 
-          if (isMeat && (invName.includes('abate') || invName.includes('abatida') || i.type === 'meat')) return true;
-          if (isEgg && (invName.includes('ovo') || i.type === 'egg')) return true;
-          if (isLive && (invName.includes('pinto') || i.type === 'chick')) return true;
+            if (isMeat && (invName.includes('abate') || invName.includes('abatida') || i.type === 'meat')) return true;
+            if (isEgg && (invName.includes('ovo') || i.type === 'egg')) return true;
+            if (isLive && (invName.includes('pinto') || i.type === 'chick')) return true;
 
-          return invName.includes(target) || target.includes(invName);
-        });
+            return invName.includes(target) || target.includes(invName);
+          });
 
-        if (availableItems.length > 0) {
-          // Use the subtype from the most relevant item in inventory
-          stockSubtype = availableItems[0].subtype;
+          if (availableItems.length > 0) {
+            stockSubtype = availableItems[0].subtype;
+          }
         }
 
         const origins = await processSale(
-          isEgg ? 'egg' : (isLive ? 'chick' : 'meat'),
+          stockType,
           stockSubtype,
           qty
         );
@@ -364,6 +388,12 @@ export default function RegisterSale() {
                   }`}>
                   <span className="font-bold">Em Estoque: </span>
                   {getAvailableStock(selectedProduct.nome)}
+                  {PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome] && (
+                    <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex items-center gap-1 opacity-70">
+                      <span className="p-0.5 bg-blue-100 rounded">🔄</span>
+                      Puxando de: {PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome].subtype}
+                    </div>
+                  )}
                 </div>
 
                 {/* FIFO Sugestion */}

@@ -1,5 +1,12 @@
 import { supabaseClient, supabase } from "./supabaseClient";
 
+export const PRODUCT_TRANSFORMATION_RULES: Record<string, { type: "egg" | "meat" | "chick", subtype: string }> = {
+    "Ovos Conserva": { type: "egg", subtype: "ovo cru" },
+    "Ovos em Conserva": { type: "egg", subtype: "ovo cru" },
+    "Churrasquinho": { type: "meat", subtype: "Abate" },
+    "Churrasquinho de Codorna": { type: "meat", subtype: "Abate" }
+};
+
 export interface InventoryItem {
     id: string;
     type: "egg" | "meat" | "chick"; // Mapped from 'categoria'
@@ -184,13 +191,13 @@ export const warehouseApi = {
         // Fetch from 3 sources
         const [prodLoss, mortality, stockAdj] = await Promise.all([
             supabase.from('producao_ovos')
-                .select('id, data_producao, quantidade, destino, observacoes, lotes(nome), gaiolas(nome)')
+                .select('id, data_producao, quantidade, destino, observacoes, lotes(name), gaiolas(nome)')
                 .in('destino', ['perda', 'consumo_proprio']),
             supabase.from('mortalidade')
-                .select('id, data_registro, quantidade, causa, lotes(nome), gaiolas(nome)'),
+                .select('id, data_registro, quantidade, causa, lotes(name), gaiolas(nome)'),
             supabase.from('estoque_movimentacoes')
                 .select('id, data_movimentacao, quantidade, origem_tipo, observacao, estoque_itens(nome, categoria)')
-                .or('tipo.eq.AJUSTE,origem_tipo.eq.perda,origem_tipo.eq.consumo')
+                .or('tipo.eq.AJUSTE,origem_tipo.eq.perda,origem_tipo.eq.consumo,origem_tipo.eq.consumo_interno,origem_tipo.eq.consumo_proprio')
         ]);
 
         const unified: any[] = [];
@@ -201,7 +208,7 @@ export const warehouseApi = {
                 id: p.id,
                 date: p.data_producao,
                 type: p.destino === 'perda' ? 'Perda (Ovos)' : 'Consumo Interno (Ovos)',
-                origin: `Lote: ${p.lotes?.nome || '?'}, Gaiola: ${p.gaiolas?.nome || '?'}`,
+                origin: `Lote: ${p.lotes?.name || '?'}, Gaiola: ${p.gaiolas?.nome || '?'}`,
                 quantity: p.quantidade,
                 reason: p.observacoes || 'Não especificado',
                 source: 'Produção'
@@ -214,7 +221,7 @@ export const warehouseApi = {
                 id: m.id,
                 date: m.data_registro,
                 type: 'Perda (Aves)',
-                origin: `Lote: ${m.lotes?.nome || '?'}, Gaiola: ${m.gaiolas?.nome || '?'}`,
+                origin: `Lote: ${m.lotes?.name || '?'}, Gaiola: ${m.gaiolas?.nome || '?'}`,
                 quantity: m.quantidade,
                 reason: m.causa || 'Mortalidade',
                 source: 'Campo'
@@ -223,13 +230,14 @@ export const warehouseApi = {
 
         // 3. Stock Adjustments (Negative adjustments or marked as pérdida/consumo)
         (stockAdj.data || []).forEach((s: any) => {
-            const isLoss = s.quantidade < 0 || s.origem_tipo === 'perda';
-            if (!isLoss && s.origem_tipo !== 'consumo') return;
+            const isLoss = s.quantidade < 0 || s.origem_tipo?.includes('perda');
+            const isConsumo = s.origem_tipo?.includes('consumo');
+            if (!isLoss && !isConsumo) return;
 
             unified.push({
                 id: s.id,
                 date: s.data_movimentacao,
-                type: s.origem_tipo === 'consumo' ? `Consumo (${s.estoque_itens?.nome})` : `Perda (${s.estoque_itens?.nome})`,
+                type: isConsumo ? `Consumo (${s.estoque_itens?.nome || 'Insumo'})` : `Perda (${s.estoque_itens?.nome || 'Insumo'})`,
                 origin: 'Armazém Central',
                 quantity: Math.abs(s.quantidade),
                 reason: s.observacao || 'Ajuste de estoque',

@@ -133,8 +133,8 @@ export default function NotificationScheduler() {
 
       // Source B: Generic Task Templates
       const relevantTemplates = templates.filter(tmpl => {
-        if (!tmpl.target_group) return true; // Global
-        return tmpl.target_group === type;
+        if (!tmpl.category_id) return true; // Global
+        return tmpl.category_id === batch.categoryId;
       });
 
       relevantTemplates.forEach(tmpl => {

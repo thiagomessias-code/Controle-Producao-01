@@ -35,6 +35,7 @@ export interface Batch {
   location?: string;
   meta_mortalidade?: number;
   meta_producao_diaria?: number;
+  categoryId?: string;
 }
 
 export interface CreateBatchRequest {
@@ -53,6 +54,7 @@ export interface CreateBatchRequest {
   meta_mortalidade?: number;
   meta_producao_diaria?: number;
   location?: string;
+  categoryId?: string;
 }
 
 export interface UpdateBatchRequest extends Partial<CreateBatchRequest> {
@@ -96,7 +98,8 @@ const mapLoteToBatch = (lote: any): Batch => {
     parentId: lote.parent_id,
     location: lote.gaiolas?.nome || lote.caixas_crescimento?.nome || "Sem Local",
     meta_mortalidade: lote.meta_mortalidade,
-    meta_producao_diaria: lote.meta_producao_diaria
+    meta_producao_diaria: lote.meta_producao_diaria,
+    categoryId: lote.category_id
   };
 };
 

@@ -30,7 +30,7 @@ export const AdminFeed: React.FC = () => {
     const [editingFeed, setEditingFeed] = useState<FeedType | null>(null);
 
     const [feedForm, setFeedForm] = useState<Partial<FeedType>>({
-        name: '', phase: 'postura', price_per_kg: 0, supplier_default: '', active: true
+        name: '', phase: 'postura', price_per_kg: 0, supplier_default: '', active: true, estoque_atual: 0
     });
 
     const [resupplyForm, setResupplyForm] = useState({
@@ -112,7 +112,8 @@ export const AdminFeed: React.FC = () => {
                 supplier_default: '',
                 active: true,
                 capacidade_silo: 50,
-                cor_silo: '#3b82f6'
+                cor_silo: '#3b82f6',
+                estoque_atual: 0
             });
         }
         setIsFeedDialogOpen(true);
@@ -364,22 +365,34 @@ export const AdminFeed: React.FC = () => {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label className="text-sm font-semibold text-gray-700">Cor do Silo</Label>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    type="color"
-                                                    value={feedForm.cor_silo}
-                                                    onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
-                                                    className="w-12 h-10 p-1 rounded-lg"
-                                                />
-                                                <Input
-                                                    type="text"
-                                                    value={feedForm.cor_silo}
-                                                    onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
-                                                    className="flex-1 focus:ring-blue-500"
-                                                    placeholder="#3b82f6"
-                                                />
-                                            </div>
+                                            <Label className="text-sm font-semibold text-gray-700">Estoque Atual (Kg)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.1"
+                                                value={feedForm.estoque_atual}
+                                                onChange={e => setFeedForm({ ...feedForm, estoque_atual: parseFloat(e.target.value) })}
+                                                required
+                                                className="focus:ring-blue-500 font-bold text-blue-700"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold text-gray-700">Cor do Silo</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                type="color"
+                                                value={feedForm.cor_silo}
+                                                onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
+                                                className="w-12 h-10 p-1 rounded-lg"
+                                            />
+                                            <Input
+                                                type="text"
+                                                value={feedForm.cor_silo}
+                                                onChange={e => setFeedForm({ ...feedForm, cor_silo: e.target.value })}
+                                                className="flex-1 focus:ring-blue-500"
+                                                placeholder="#3b82f6"
+                                            />
                                         </div>
                                     </div>
                                     <DialogFooter>

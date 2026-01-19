@@ -80,6 +80,7 @@ import { AdminNotifications } from "@/pages/admin/notifications/AdminNotificatio
 import { AdminIncubation } from "@/pages/admin/incubation/AdminIncubation";
 import { AdminGrowthBoxes } from "@/pages/admin/caixas/AdminGrowthBoxes";
 import { AdminStock } from "@/pages/admin/stock/AdminStock";
+import { AdminLossDashboard } from "@/pages/admin/stock/AdminLossDashboard";
 import { AdminCosts } from "@/pages/admin/relatorios/AdminCosts";
 
 
@@ -155,6 +156,7 @@ export default function AppRoutes() {
               <Route path="/admin/alimentacao" component={AdminFeed} />
               <Route path="/admin/lotes" component={AdminLotes} />
               <Route path="/admin/estoque" component={AdminStock} />
+              <Route path="/admin/perdas-consumo" component={AdminLossDashboard} />
               <Route path="/admin/caixas-crescimento" component={AdminGrowthBoxes} />
               <Route path="/admin/notificacoes" component={AdminNotifications} />
               <Route path="/admin/relatorios" component={AdminReports} />

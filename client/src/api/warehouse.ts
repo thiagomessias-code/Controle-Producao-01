@@ -1,4 +1,4 @@
-import { supabaseClient } from "./supabaseClient";
+import { supabaseClient, supabase } from "./supabaseClient";
 
 export interface InventoryItem {
     id: string;
@@ -168,5 +168,75 @@ export const warehouseApi = {
         }
 
         return originsUsed;
+    },
+
+    updateInventoryItem: async (id: string, updates: Partial<any>): Promise<void> => {
+        const { error } = await supabase.from('estoque_itens').update(updates).eq('id', id);
+        if (error) throw error;
+    },
+
+    deleteInventoryItem: async (id: string): Promise<void> => {
+        const { error } = await supabase.from('estoque_itens').delete().eq('id', id);
+        if (error) throw error;
+    },
+
+    getLossHistory: async (): Promise<any[]> => {
+        // Fetch from 3 sources
+        const [prodLoss, mortality, stockAdj] = await Promise.all([
+            supabase.from('producao_ovos')
+                .select('id, data_producao, quantidade, destino, observacoes, lotes(nome), gaiolas(nome)')
+                .in('destino', ['perda', 'consumo_proprio']),
+            supabase.from('mortalidade')
+                .select('id, data_registro, quantidade, causa, lotes(nome), gaiolas(nome)'),
+            supabase.from('estoque_movimentacoes')
+                .select('id, data_movimentacao, quantidade, origem_tipo, observacao, estoque_itens(nome, categoria)')
+                .or('tipo.eq.AJUSTE,origem_tipo.eq.perda,origem_tipo.eq.consumo')
+        ]);
+
+        const unified: any[] = [];
+
+        // 1. Eggs Loss/Consumption
+        (prodLoss.data || []).forEach((p: any) => {
+            unified.push({
+                id: p.id,
+                date: p.data_producao,
+                type: p.destino === 'perda' ? 'Perda (Ovos)' : 'Consumo Interno (Ovos)',
+                origin: `Lote: ${p.lotes?.nome || '?'}, Gaiola: ${p.gaiolas?.nome || '?'}`,
+                quantity: p.quantidade,
+                reason: p.observacoes || 'Não especificado',
+                source: 'Produção'
+            });
+        });
+
+        // 2. Mortality (All mortality is effectively a loss)
+        (mortality.data || []).forEach((m: any) => {
+            unified.push({
+                id: m.id,
+                date: m.data_registro,
+                type: 'Perda (Aves)',
+                origin: `Lote: ${m.lotes?.nome || '?'}, Gaiola: ${m.gaiolas?.nome || '?'}`,
+                quantity: m.quantidade,
+                reason: m.causa || 'Mortalidade',
+                source: 'Campo'
+            });
+        });
+
+        // 3. Stock Adjustments (Negative adjustments or marked as pérdida/consumo)
+        (stockAdj.data || []).forEach((s: any) => {
+            const isLoss = s.quantidade < 0 || s.origem_tipo === 'perda';
+            if (!isLoss && s.origem_tipo !== 'consumo') return;
+
+            unified.push({
+                id: s.id,
+                date: s.data_movimentacao,
+                type: s.origem_tipo === 'consumo' ? `Consumo (${s.estoque_itens?.nome})` : `Perda (${s.estoque_itens?.nome})`,
+                origin: 'Armazém Central',
+                quantity: Math.abs(s.quantidade),
+                reason: s.observacao || 'Ajuste de estoque',
+                source: 'Armazém'
+            });
+        });
+
+        return unified.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 };

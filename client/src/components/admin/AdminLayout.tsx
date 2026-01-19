@@ -11,10 +11,9 @@ import {
     DollarSign,
     FileText,
     Package,
-    Utensils,
-    Boxes,
     Bell,
-    Egg
+    Egg,
+    TrendingDown
 } from 'lucide-react';
 
 // Inline Admin Sidebar Component
@@ -30,6 +29,7 @@ const AdminSidebar: React.FC = () => {
         { path: '/admin/incubacao', label: 'Incubação', icon: <Egg size={20} /> },
         { path: '/admin/caixas-crescimento', label: 'Caixas Cresc.', icon: <Boxes size={20} /> },
         { path: '/admin/estoque', label: 'Estoque', icon: <Package size={20} /> },
+        { path: '/admin/perdas-consumo', label: 'Perdas & Consumo', icon: <TrendingDown size={20} /> },
         { path: '/admin/alimentacao', label: 'Alimentação', icon: <Utensils size={20} /> },
         { path: '/admin/lotes', label: 'Lotes', icon: <Boxes size={20} /> },
         { path: '/admin/notificacoes', label: 'Notificações', icon: <Bell size={20} /> },

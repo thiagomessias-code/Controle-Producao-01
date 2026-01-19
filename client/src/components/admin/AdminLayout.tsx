@@ -11,6 +11,8 @@ import {
     DollarSign,
     FileText,
     Package,
+    Utensils,
+    Boxes,
     Bell,
     Egg,
     TrendingDown

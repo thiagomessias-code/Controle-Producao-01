@@ -89,8 +89,10 @@ export default function RegisterSale() {
   const getAvailableStock = (name: string) => {
     let target = name.toLowerCase();
 
-    // Check for Transformation Rules
-    const rule = PRODUCT_TRANSFORMATION_RULES[name];
+    // Check for Transformation Rules (Case-insensitive)
+    const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === target);
+    const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+
     if (rule) {
       return inventory
         .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
@@ -129,7 +131,10 @@ export default function RegisterSale() {
 
   // Helper: Get FIFO Suggestions (Oldest Batches First)
   const getFifoSuggestions = (productName: string) => {
-    const rule = PRODUCT_TRANSFORMATION_RULES[productName];
+    const targetKey = productName.toLowerCase();
+    const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
+    const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+
     if (rule) {
       return inventory
         .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
@@ -225,8 +230,11 @@ export default function RegisterSale() {
         let stockSubtype = selectedProduct.nome;
         let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : 'meat');
 
-        // Check for Transformation Rules
-        const rule = PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome];
+        // Check for Transformation Rules (Case-insensitive)
+        const targetKey = selectedProduct.nome.toLowerCase();
+        const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
+        const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+
         if (rule) {
           stockType = rule.type;
           stockSubtype = rule.subtype;
@@ -382,19 +390,27 @@ export default function RegisterSale() {
                   placeholder="0"
                 />
 
-                <div className={`text-sm mt-1 p-2 rounded ${getAvailableStock(selectedProduct.nome) > 0
-                  ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                  : 'bg-red-50 text-red-700 border border-red-100'
-                  }`}>
-                  <span className="font-bold">Em Estoque: </span>
-                  {getAvailableStock(selectedProduct.nome)}
-                  {PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome] && (
-                    <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex items-center gap-1 opacity-70">
-                      <span className="p-0.5 bg-blue-100 rounded">🔄</span>
-                      Puxando de: {PRODUCT_TRANSFORMATION_RULES[selectedProduct.nome].subtype}
+                {(() => {
+                  const targetKey = selectedProduct.nome.toLowerCase();
+                  const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
+                  const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+
+                  return (
+                    <div className={`text-sm mt-1 p-2 rounded ${getAvailableStock(selectedProduct.nome) > 0
+                      ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                      : 'bg-red-50 text-red-700 border border-red-100'
+                      }`}>
+                      <span className="font-bold">Em Estoque: </span>
+                      {getAvailableStock(selectedProduct.nome)}
+                      {rule && (
+                        <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex items-center gap-1 opacity-70">
+                          <span className="p-0.5 bg-blue-100 rounded">🔄</span>
+                          Puxando de: {rule.subtype}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* FIFO Sugestion */}
                 {getAvailableStock(selectedProduct.nome) > 0 && (

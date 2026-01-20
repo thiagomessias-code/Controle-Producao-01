@@ -1,10 +1,12 @@
 import { supabaseClient, supabase } from "./supabaseClient";
 
 export const PRODUCT_TRANSFORMATION_RULES: Record<string, { type: "egg" | "meat" | "chick", subtype: string }> = {
+    "Ovo Conserva": { type: "egg", subtype: "ovo cru" },
     "Ovos Conserva": { type: "egg", subtype: "ovo cru" },
     "Ovos em Conserva": { type: "egg", subtype: "ovo cru" },
     "Churrasquinho": { type: "meat", subtype: "Abate" },
-    "Churrasquinho de Codorna": { type: "meat", subtype: "Abate" }
+    "Churrasquinho de Codorna": { type: "meat", subtype: "Abate" },
+    "Codorna Abatida": { type: "meat", subtype: "Abate" }
 };
 
 export interface InventoryItem {

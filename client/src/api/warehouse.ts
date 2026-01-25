@@ -162,7 +162,6 @@ export const warehouseApi = {
         if (totalAvailable < quantity) throw new Error(`Estoque insuficiente. Disponível: ${totalAvailable}`);
 
         let remainingToDeduct = quantity;
-        const originsUsed: any[] = [];
 
         for (const item of relevantItems) {
             if (remainingToDeduct <= 0) break;

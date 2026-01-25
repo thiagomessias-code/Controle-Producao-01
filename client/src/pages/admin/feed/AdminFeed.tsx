@@ -279,9 +279,13 @@ export const AdminFeed: React.FC = () => {
                                                     <td className="p-4 font-medium text-green-600">{formatCurrency(feed.price_per_kg)}</td>
                                                     <td className="p-4 text-gray-500">{feed.supplier_default || '-'}</td>
                                                     <td className="p-4 pr-6 text-right">
-                                                        <div className="flex justify-end gap-2 transition-opacity">
-                                                            <button onClick={() => openFeedDialog(feed)} className="p-1 hover:bg-blue-100 text-blue-600 rounded mb-0.5"><Edit size={16} /></button>
-                                                            <button onClick={() => handleDeleteFeed(feed.id)} className="p-1 hover:bg-red-100 text-red-500 rounded mb-0.5"><Trash2 size={16} /></button>
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => openFeedDialog(feed)} className="p-1.5 text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 shadow-sm transition-all" title="Editar Ração">
+                                                                <Edit size={18} />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteFeed(feed.id)} className="p-1.5 text-red-500 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 shadow-sm transition-all" title="Excluir Ração">
+                                                                <Trash2 size={18} />
+                                                            </button>
                                                         </div>
                                                     </td>
                                                 </tr>

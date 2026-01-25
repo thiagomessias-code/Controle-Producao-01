@@ -167,12 +167,12 @@ export const AdminUsers: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1 transition-opacity">
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleOpenModal(user)}>
-                                                <Edit size={16} className="text-gray-500 hover:text-blue-600" />
+                                        <div className="flex justify-end gap-2">
+                                            <Button size="sm" variant="outline" className="h-9 w-9 p-0 text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100 shadow-sm transition-all" onClick={() => handleOpenModal(user)} title="Editar Usuário">
+                                                <Edit size={18} />
                                             </Button>
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(user.id)}>
-                                                <Trash2 size={16} />
+                                            <Button size="sm" variant="outline" className="h-9 w-9 p-0 text-red-600 bg-red-50 border-red-100 hover:bg-red-100 shadow-sm transition-all" onClick={() => handleDelete(user.id)} title="Excluir Usuário">
+                                                <Trash2 size={18} />
                                             </Button>
                                         </div>
                                     </TableCell>

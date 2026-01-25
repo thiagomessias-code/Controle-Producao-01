@@ -6,8 +6,10 @@ import Input from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/api/supabaseClient';
 import Loading from '@/components/ui/Loading';
+import { useAuth } from '@/hooks/useAuth';
 
 export const AdminNotifications: React.FC = () => {
+    const { user } = useAuth();
     const [templates, setTemplates] = React.useState<any[]>([]);
     const [users, setUsers] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
@@ -147,8 +149,9 @@ export const AdminNotifications: React.FC = () => {
                         <Button
                             onClick={async () => {
                                 try {
+                                    if (!user?.id) return alert('Usuário não identificado. Faça login novamente.');
                                     const { error } = await supabase.from('notificacoes').insert({
-                                        usuario_id: (await supabase.auth.getUser()).data.user?.id,
+                                        usuario_id: user.id,
                                         mensagem: "🔔 Teste de Notificação: Se você recebeu isso, o sistema está funcionando!",
                                         nivel: 'info',
                                         lida: false
@@ -240,12 +243,12 @@ export const AdminNotifications: React.FC = () => {
                                                 {tmpl.recurrence === 'daily' ? 'Diário' : tmpl.recurrence} • {tmpl.default_time.substring(0, 5)}
                                             </p>
                                         </div>
-                                        <div className="flex gap-1 transition-opacity">
-                                            <Button variant="ghost" size="sm" onClick={() => setEditingTemplate(tmpl)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-100">
-                                                <Edit size={14} />
+                                        <div className="flex gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => setEditingTemplate(tmpl)} className="h-9 w-9 p-0 text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100 transition-all shadow-sm" title="Editar Tarefa">
+                                                <Edit size={18} />
                                             </Button>
-                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteTask(tmpl.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100">
-                                                <Trash2 size={14} />
+                                            <Button variant="outline" size="sm" onClick={() => handleDeleteTask(tmpl.id)} className="h-9 w-9 p-0 text-red-600 bg-red-50 border-red-100 hover:bg-red-100 transition-all shadow-sm" title="Excluir Tarefa">
+                                                <Trash2 size={18} />
                                             </Button>
                                         </div>
                                     </div>

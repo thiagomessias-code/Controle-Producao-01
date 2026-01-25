@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabaseClient } from '@/api/supabaseClient';
+import { supabaseClient, supabase } from '@/api/supabaseClient';
 
 export interface User {
     id: string;
@@ -33,6 +33,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const parsed = JSON.parse(storedUser);
                 // Optimistically set user from storage
                 setUser(parsed);
+
+                // Sync token with Native Supabase Client for direct direct direct direct DB access (Notifications, etc)
+                if (storedToken) {
+                    supabase.auth.setSession({
+                        access_token: storedToken,
+                        refresh_token: '',
+                    }).catch(err => console.error('Error syncing Supabase session:', err));
+                }
 
                 // Then verify/refresh in background
                 try {
@@ -74,6 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = () => {
         localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_token');
+        supabase.auth.signOut();
         setUser(null);
         window.location.href = '/login';
     };

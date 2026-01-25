@@ -134,7 +134,6 @@ export const AdminNotifications: React.FC = () => {
     const handleDeleteTask = async (id: string) => {
         if (!confirm('Tem certeza que deseja excluir esta tarefa recorrente? Ela deixará de ser gerada para os lotes.')) return;
         try {
-            // Soft delete or hard delete? User seems to want to remove them.
             const { error } = await supabase.from('tasks_templates').delete().eq('id', id);
             if (error) throw error;
             alert('Tarefa excluída!');
@@ -142,6 +141,21 @@ export const AdminNotifications: React.FC = () => {
         } catch (err: any) {
             console.error(err);
             alert('Erro ao excluir: ' + err.message);
+        }
+    };
+
+    const handleTestPush = async (userId: string, userName: string) => {
+        try {
+            const { error } = await supabase.from('notificacoes').insert({
+                usuario_id: userId,
+                mensagem: `🔔 Teste direto de Push para ${userName}`,
+                nivel: 'info',
+                lida: false
+            });
+            if (error) throw error;
+            alert(`Sinal de teste enviado para ${userName}. Verifique no App dele(a).`);
+        } catch (e: any) {
+            alert('Erro ao testar: ' + e.message);
         }
     };
 
@@ -280,6 +294,39 @@ export const AdminNotifications: React.FC = () => {
                             >
                                 + Nova Tarefa Recorrente
                             </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-sm hover:shadow-lg transition-all duration-300">
+                    <div className="h-1.5 bg-orange-500 w-full rounded-t-2xl"></div>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-3 text-xl">
+                            <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                                <Users size={20} />
+                            </div>
+                            Verificar Dispositivos
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-xs text-gray-500 mb-4 font-medium">Envie um sinal de teste para o celular de um funcionário específico para validar se o App dele está recebendo notificações.</p>
+                        <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                            {users.map(u => (
+                                <div key={u.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-orange-200 transition-all group">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-gray-800 truncate">{u.name}</p>
+                                        <p className="text-[10px] text-gray-400 font-black uppercase">{u.role}</p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleTestPush(u.id, u.name)}
+                                        className="h-8 px-3 text-[10px] font-black border-orange-200 text-orange-600 hover:bg-orange-50 rounded-lg shadow-sm"
+                                    >
+                                        VERIFICAR
+                                    </Button>
+                                </div>
+                            ))}
                         </div>
                     </CardContent>
                 </Card>

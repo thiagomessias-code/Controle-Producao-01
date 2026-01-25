@@ -12,6 +12,7 @@ export const AdminNotifications: React.FC = () => {
     const { user } = useAuth();
     const [templates, setTemplates] = React.useState<any[]>([]);
     const [users, setUsers] = React.useState<any[]>([]);
+    const [aviaries, setAviaries] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [sending, setSending] = React.useState(false);
 
@@ -24,7 +25,8 @@ export const AdminNotifications: React.FC = () => {
     const [newTaskData, setNewTaskData] = React.useState({
         title: '',
         default_time: '08:00',
-        recurrence: 'daily'
+        recurrence: 'daily',
+        aviario_id: ''
     });
 
     const [editingTemplate, setEditingTemplate] = React.useState<any>(null);
@@ -35,12 +37,14 @@ export const AdminNotifications: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const [{ data: tmpls }, { data: usrs }] = await Promise.all([
+            const [{ data: tmpls }, { data: usrs }, { data: avs }] = await Promise.all([
                 supabase.from('tasks_templates').select('*').eq('active', true).order('default_time'),
-                supabase.from('users').select('id, name, role')
+                supabase.from('users').select('id, name, role'),
+                supabase.from('aviarios').select('id, nome')
             ]);
             setTemplates(tmpls || []);
             setUsers(usrs || []);
+            setAviaries(avs || []);
         } catch (error) {
             console.error("Erro ao buscar dados:", error);
         } finally {
@@ -89,13 +93,14 @@ export const AdminNotifications: React.FC = () => {
                 key: newTaskData.title.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4),
                 default_time: newTaskData.default_time,
                 recurrence: newTaskData.recurrence,
+                aviario_id: newTaskData.aviario_id || null,
                 category_id: null,
                 active: true
             });
             if (error) throw error;
             alert('Tarefa recorrente criada!');
             setShowNewTaskModal(false);
-            setNewTaskData({ title: '', default_time: '08:00', recurrence: 'daily' });
+            setNewTaskData({ title: '', default_time: '08:00', recurrence: 'daily', aviario_id: '' });
             fetchData();
         } catch (err: any) {
             console.error(err);
@@ -111,7 +116,8 @@ export const AdminNotifications: React.FC = () => {
                 .update({
                     title: editingTemplate.title,
                     default_time: editingTemplate.default_time,
-                    recurrence: editingTemplate.recurrence
+                    recurrence: editingTemplate.recurrence,
+                    aviario_id: editingTemplate.aviario_id || null
                 })
                 .eq('id', editingTemplate.id);
 
@@ -239,9 +245,21 @@ export const AdminNotifications: React.FC = () => {
                                         </div>
                                         <div className="flex-1">
                                             <p className="font-semibold text-gray-800">{tmpl.title}</p>
-                                            <p className="text-xs text-gray-500 font-medium bg-gray-200/50 px-2 py-0.5 rounded-full w-fit mt-1">
-                                                {tmpl.recurrence === 'daily' ? 'Diário' : tmpl.recurrence} • {tmpl.default_time.substring(0, 5)}
-                                            </p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-[10px] text-gray-500 font-medium bg-gray-200/50 px-2 py-0.5 rounded-full w-fit">
+                                                    {tmpl.recurrence === 'daily' ? 'Diário' : tmpl.recurrence} • {tmpl.default_time.substring(0, 5)}
+                                                </p>
+                                                {tmpl.aviario_id && (
+                                                    <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full uppercase">
+                                                        📍 {aviaries.find(a => a.id === tmpl.aviario_id)?.nome || 'Aviário'}
+                                                    </span>
+                                                )}
+                                                {!tmpl.aviario_id && (
+                                                    <span className="text-[10px] bg-green-100 text-green-700 font-bold px-2 py-0.5 rounded-full uppercase">
+                                                        🌎 Global
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" onClick={() => setEditingTemplate(tmpl)} className="h-9 w-9 p-0 text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100 transition-all shadow-sm" title="Editar Tarefa">
@@ -302,6 +320,20 @@ export const AdminNotifications: React.FC = () => {
                                     <option value="weekly">Semanal</option>
                                 </select>
                             </div>
+                            <div>
+                                <Label>Público-Alvo (Aviário)</Label>
+                                <select
+                                    className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                    value={newTaskData.aviario_id}
+                                    onChange={e => setNewTaskData({ ...newTaskData, aviario_id: e.target.value })}
+                                >
+                                    <option value="">Todo o Sistema (Global)</option>
+                                    {aviaries.map(a => (
+                                        <option key={a.id} value={a.id}>{a.nome}</option>
+                                    ))}
+                                </select>
+                                <p className="text-[10px] text-gray-400 mt-1 italic">Selecione para restringir a tarefa apenas aos funcionários de um aviário específico.</p>
+                            </div>
                             <div className="flex gap-2 justify-end pt-4">
                                 <Button variant="ghost" onClick={() => setShowNewTaskModal(false)}>Cancelar</Button>
                                 <Button onClick={handleCreateTask}>Salvar Tarefa</Button>
@@ -343,6 +375,19 @@ export const AdminNotifications: React.FC = () => {
                                 >
                                     <option value="daily">Diária</option>
                                     <option value="weekly">Semanal</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label>Público-Alvo (Aviário)</Label>
+                                <select
+                                    className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                    value={editingTemplate.aviario_id || ''}
+                                    onChange={e => setEditingTemplate({ ...editingTemplate, aviario_id: e.target.value })}
+                                >
+                                    <option value="">Todo o Sistema (Global)</option>
+                                    {aviaries.map(a => (
+                                        <option key={a.id} value={a.id}>{a.nome}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="flex gap-2 justify-end pt-4">

@@ -234,9 +234,13 @@ export default function RegisterSale() {
       const isLive = selectedProduct.tipo === "ave_viva";
 
       let originTag = "";
-      if (isEgg || isMeat || isLive) {
+      const isDerivative = selectedProduct.controla_estoque === false;
+
+      if (isEgg || isMeat || isLive || isDerivative) {
         let stockSubtype = selectedProduct.nome;
-        let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : 'meat');
+        // For derivatives, the internal calls will use the correct types from the technical sheet.
+        // We just need a valid initial type to pass to the parent processSale call.
+        let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : (isMeat ? 'meat' : 'egg'));
 
         const origins = await processSale(
           stockType,
@@ -269,18 +273,23 @@ export default function RegisterSale() {
         : `${formData.date}T12:00:00`; // Use noon for historical dates to avoid TZ shifts
 
       // Create Sale Record
-      await create({
-        groupId: formData.groupId || "warehouse",
-        date: finalDate,
-        quantity: qty,
-        unitPrice: selectedVariation.price,
-        buyer: formData.buyer,
-        productType: selectedProduct.nome, // Storing Name as type for legibility
-        product_variation_id: selectedVariation.id,
-        userId: user?.id,
-        paymentMethod: formData.paymentMethod,
-        notes: `Variação: ${selectedVariation.name}. ${formData.notes}${originTag}`,
-      });
+      try {
+        await create({
+          groupId: formData.groupId || "warehouse",
+          date: finalDate,
+          quantity: qty,
+          unitPrice: selectedVariation.price,
+          buyer: formData.buyer,
+          productType: selectedProduct.nome,
+          product_variation_id: selectedVariation.id,
+          userId: user?.id,
+          paymentMethod: formData.paymentMethod,
+          notes: `Variação: ${selectedVariation.name}. ${formData.notes}${originTag}`,
+        });
+      } catch (createErr: any) {
+        console.error("Erro na criação do registro de venda:", createErr);
+        throw new Error(`Estoque foi abatido, mas o registro da venda falhou: ${createErr.message || 'Erro desconhecido'}`);
+      }
 
       setLocation("/sales");
       toast.success("Venda registrada com sucesso!");
@@ -435,6 +444,11 @@ export default function RegisterSale() {
             <CardTitle>Finalizar Venda</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {error && (
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                {error}
+              </div>
+            )}
             <div className="bg-muted p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Produto:</span>

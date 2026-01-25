@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Bell, Calendar, Send } from 'lucide-react';
+import { Bell, Calendar, Send, Edit, Trash2 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/api/supabaseClient';
@@ -24,6 +24,8 @@ export const AdminNotifications: React.FC = () => {
         default_time: '08:00',
         recurrence: 'daily'
     });
+
+    const [editingTemplate, setEditingTemplate] = React.useState<any>(null);
 
     React.useEffect(() => {
         fetchData();
@@ -79,26 +81,59 @@ export const AdminNotifications: React.FC = () => {
 
     const handleCreateTask = async () => {
         if (!newTaskData.title) return alert('Digite um título.');
-
         try {
             const { error } = await supabase.from('tasks_templates').insert({
                 title: newTaskData.title,
                 key: newTaskData.title.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4),
                 default_time: newTaskData.default_time,
                 recurrence: newTaskData.recurrence,
-                category_id: null, // Global or select category if needed
+                category_id: null,
                 active: true
             });
-
             if (error) throw error;
-
             alert('Tarefa recorrente criada!');
             setShowNewTaskModal(false);
             setNewTaskData({ title: '', default_time: '08:00', recurrence: 'daily' });
-            fetchData(); // Refresh list
+            fetchData();
         } catch (err: any) {
             console.error(err);
             alert('Erro ao criar tarefa: ' + err.message);
+        }
+    };
+
+    const handleUpdateTask = async () => {
+        if (!editingTemplate.title) return alert('Digite um título.');
+        try {
+            const { error } = await supabase
+                .from('tasks_templates')
+                .update({
+                    title: editingTemplate.title,
+                    default_time: editingTemplate.default_time,
+                    recurrence: editingTemplate.recurrence
+                })
+                .eq('id', editingTemplate.id);
+
+            if (error) throw error;
+            alert('Tarefa atualizada!');
+            setEditingTemplate(null);
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            alert('Erro ao atualizar: ' + err.message);
+        }
+    };
+
+    const handleDeleteTask = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir esta tarefa recorrente? Ela deixará de ser gerada para os lotes.')) return;
+        try {
+            // Soft delete or hard delete? User seems to want to remove them.
+            const { error } = await supabase.from('tasks_templates').delete().eq('id', id);
+            if (error) throw error;
+            alert('Tarefa excluída!');
+            fetchData();
+        } catch (err: any) {
+            console.error(err);
+            alert('Erro ao excluir: ' + err.message);
         }
     };
 
@@ -183,7 +218,14 @@ export const AdminNotifications: React.FC = () => {
                                                 {tmpl.recurrence === 'daily' ? 'Diário' : tmpl.recurrence} • {tmpl.default_time.substring(0, 5)}
                                             </p>
                                         </div>
-                                        <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">Editar</Button>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="sm" onClick={() => setEditingTemplate(tmpl)} className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50">
+                                                <Edit size={14} />
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteTask(tmpl.id)} className="h-8 w-8 p-0 text-red-600 hover:bg-red-50">
+                                                <Trash2 size={14} />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))
                             )}
@@ -238,6 +280,49 @@ export const AdminNotifications: React.FC = () => {
                             <div className="flex gap-2 justify-end pt-4">
                                 <Button variant="ghost" onClick={() => setShowNewTaskModal(false)}>Cancelar</Button>
                                 <Button onClick={handleCreateTask}>Salvar Tarefa</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Modal de Edição */}
+            {editingTemplate && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                    <Card className="w-full max-w-md bg-white shadow-2xl relative">
+                        <CardHeader>
+                            <CardTitle>Editar Tarefa Recorrente</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <Label>Título</Label>
+                                <Input
+                                    value={editingTemplate.title}
+                                    onChange={e => setEditingTemplate({ ...editingTemplate, title: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label>Horário Padrão</Label>
+                                <Input
+                                    type="time"
+                                    value={editingTemplate.default_time}
+                                    onChange={e => setEditingTemplate({ ...editingTemplate, default_time: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <Label>Recorrência</Label>
+                                <select
+                                    className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
+                                    value={editingTemplate.recurrence}
+                                    onChange={e => setEditingTemplate({ ...editingTemplate, recurrence: e.target.value })}
+                                >
+                                    <option value="daily">Diária</option>
+                                    <option value="weekly">Semanal</option>
+                                </select>
+                            </div>
+                            <div className="flex gap-2 justify-end pt-4">
+                                <Button variant="ghost" onClick={() => setEditingTemplate(null)}>Cancelar</Button>
+                                <Button onClick={handleUpdateTask}>Atualizar Tarefa</Button>
                             </div>
                         </CardContent>
                     </Card>

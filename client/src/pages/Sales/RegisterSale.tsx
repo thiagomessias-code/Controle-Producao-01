@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useSales } from "@/hooks/useSales";
 import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
-import { PRODUCT_TRANSFORMATION_RULES } from "@/api/warehouse";
+// PRODUCT_TRANSFORMATION_RULES removed - now using 'ficha_tecnica' defined in DB per product.
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { formatCurrency } from "@/utils/format";
@@ -28,6 +28,8 @@ interface Product {
   nome: string;
   tipo: string;
   ativo: boolean;
+  controla_estoque?: boolean;
+  ficha_tecnica?: any[];
   product_variations?: ProductVariation[];
 }
 
@@ -86,17 +88,20 @@ export default function RegisterSale() {
 
   // Helper: Get Available Stock for Eggs/Meat
   // Helper: Get Available Stock for Eggs/Meat/Animals
-  const getAvailableStock = (name: string) => {
+  const getAvailableStock = (name: string): number => {
     let target = name.toLowerCase();
+    const product = products.find(p => p.nome.toLowerCase() === target);
 
-    // Check for Transformation Rules (Case-insensitive)
-    const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === target);
-    const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+    // If product doesn't control stock, stock depends on raw materials in technical sheet
+    if (product && product.controla_estoque === false && product.ficha_tecnica) {
+      if (product.ficha_tecnica.length === 0) return 0;
 
-    if (rule) {
-      return inventory
-        .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
-        .reduce((acc, i) => acc + i.quantity, 0);
+      const ingredientAvailabilities = product.ficha_tecnica.map(ing => {
+        const availableIng = getAvailableStock(ing.raw_material_name);
+        return Math.floor(availableIng / ing.quantity);
+      });
+
+      return Math.min(...ingredientAvailabilities);
     }
 
     // Logic for Chicks (Pintos) - Use Warehouse Inventory as requested
@@ -131,18 +136,18 @@ export default function RegisterSale() {
 
   // Helper: Get FIFO Suggestions (Oldest Batches First)
   const getFifoSuggestions = (productName: string) => {
-    const targetKey = productName.toLowerCase();
-    const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
-    const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
+    const target = productName.toLowerCase();
+    const product = products.find(p => p.nome.toLowerCase() === target);
 
-    if (rule) {
-      return inventory
-        .filter(i => i.status === "in_stock" && i.type === rule.type && i.subtype.toLowerCase().includes(rule.subtype.toLowerCase()))
-        .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime())
-        .slice(0, 3);
+    if (product && product.controla_estoque === false && product.ficha_tecnica) {
+      // FIFO for derivatives? We show FIFO for the first ingredient as a hint
+      if (product.ficha_tecnica.length > 0) {
+        return getFifoSuggestions(product.ficha_tecnica[0].raw_material_name);
+      }
+      return [];
     }
 
-    const target = productName.toLowerCase().replace(/s$/, ""); // Normalize
+    const targetNorm = target.replace(/s$/, ""); // Normalize
 
     return inventory
       .filter(i => {
@@ -207,7 +212,10 @@ export default function RegisterSale() {
     // So if available is 0, we BLOCK.
 
     if (available < qty) {
-      setError(`Estoque insuficiente! Disponível: ${available}. Solicitado: ${qty}.`);
+      const msg = selectedProduct.controla_estoque === false
+        ? `Insumos insuficientes para produzir! Disponível: ${available}. Solicitado: ${qty}.`
+        : `Estoque insuficiente! Disponível: ${available}. Solicitado: ${qty}.`;
+      setError(msg);
       return;
     }
 
@@ -230,37 +238,12 @@ export default function RegisterSale() {
         let stockSubtype = selectedProduct.nome;
         let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : 'meat');
 
-        // Check for Transformation Rules (Case-insensitive)
-        const targetKey = selectedProduct.nome.toLowerCase();
-        const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
-        const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
-
-        if (rule) {
-          stockType = rule.type;
-          stockSubtype = rule.subtype;
-        } else {
-          // Find the EXACT subtype present in inventory to avoid mismatch during processSale
-          const availableItems = inventory.filter(i => {
-            if (i.status !== "in_stock") return false;
-            const invName = (i.subtype || "").toLowerCase();
-            const target = selectedProduct.nome.toLowerCase();
-
-            if (isMeat && (invName.includes('abate') || invName.includes('abatida') || i.type === 'meat')) return true;
-            if (isEgg && (invName.includes('ovo') || i.type === 'egg')) return true;
-            if (isLive && (invName.includes('pinto') || i.type === 'chick')) return true;
-
-            return invName.includes(target) || target.includes(invName);
-          });
-
-          if (availableItems.length > 0) {
-            stockSubtype = availableItems[0].subtype;
-          }
-        }
-
         const origins = await processSale(
           stockType,
           stockSubtype,
-          qty
+          qty,
+          "venda",
+          selectedProduct.ficha_tecnica
         );
 
         // Extract Aviary Names from Origins
@@ -391,21 +374,24 @@ export default function RegisterSale() {
                 />
 
                 {(() => {
-                  const targetKey = selectedProduct.nome.toLowerCase();
-                  const ruleKey = Object.keys(PRODUCT_TRANSFORMATION_RULES).find(k => k.toLowerCase() === targetKey);
-                  const rule = ruleKey ? PRODUCT_TRANSFORMATION_RULES[ruleKey] : null;
-
                   return (
                     <div className={`text-sm mt-1 p-2 rounded ${getAvailableStock(selectedProduct.nome) > 0
                       ? 'bg-blue-50 text-blue-700 border border-blue-100'
                       : 'bg-red-50 text-red-700 border border-red-100'
                       }`}>
-                      <span className="font-bold">Em Estoque: </span>
+                      <span className="font-bold">
+                        {selectedProduct.controla_estoque === false ? 'Pode Produzir: ' : 'Em Estoque: '}
+                      </span>
                       {getAvailableStock(selectedProduct.nome)}
-                      {rule && (
-                        <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex items-center gap-1 opacity-70">
-                          <span className="p-0.5 bg-blue-100 rounded">🔄</span>
-                          Puxando de: {rule.subtype}
+                      {selectedProduct.controla_estoque === false && selectedProduct.ficha_tecnica && selectedProduct.ficha_tecnica.length > 0 && (
+                        <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex flex-col gap-1 opacity-70 border-t pt-1">
+                          <span className="font-bold">Composição (Insumos):</span>
+                          {selectedProduct.ficha_tecnica.map((ing, i) => (
+                            <div key={i} className="flex justify-between">
+                              <span>{ing.raw_material_name}:</span>
+                              <span>{ing.quantity * Number(formData.quantity || 0)} total</span>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

@@ -12,7 +12,8 @@ import {
     DialogTrigger,
     DialogFooter
 } from "@/components/ui/dialog";
-import { Package, Plus, Trash2, Edit } from 'lucide-react';
+import { Package, Plus, Trash2, Edit, Info } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 
 interface ProductVariation {
     id: string;
@@ -29,6 +30,8 @@ interface Product {
     tipo: string;
     ativo: boolean;
     validity_days?: number;
+    controla_estoque?: boolean;
+    ficha_tecnica?: any[];
     product_variations?: ProductVariation[];
 }
 
@@ -36,7 +39,7 @@ export const AdminProducts: React.FC = () => {
     const [produtos, setProdutos] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [formData, setFormData] = useState<Partial<Product>>({ ativo: true, tipo: 'ovo', validity_days: 30 });
+    const [formData, setFormData] = useState<Partial<Product>>({ ativo: true, tipo: 'ovo', validity_days: 30, controla_estoque: true, ficha_tecnica: [] });
     const [editingId, setEditingId] = useState<string | null>(null);
 
     // Variations State for the current product being edited
@@ -70,7 +73,9 @@ export const AdminProducts: React.FC = () => {
                 nome: formData.nome,
                 tipo: formData.tipo,
                 ativo: formData.ativo,
-                validity_days: formData.validity_days
+                validity_days: formData.validity_days,
+                controla_estoque: formData.controla_estoque,
+                ficha_tecnica: formData.ficha_tecnica
             };
 
             if (productId) {
@@ -136,7 +141,9 @@ export const AdminProducts: React.FC = () => {
             nome: produto.nome,
             tipo: produto.tipo,
             ativo: produto.ativo,
-            validity_days: produto.validity_days
+            validity_days: produto.validity_days,
+            controla_estoque: produto.controla_estoque ?? true,
+            ficha_tecnica: produto.ficha_tecnica || []
         });
         setVariations(produto.product_variations || []);
         setEditingId(produto.id);
@@ -149,7 +156,7 @@ export const AdminProducts: React.FC = () => {
     };
 
     const resetForm = () => {
-        setFormData({ ativo: true, tipo: 'ovo', validity_days: 30 });
+        setFormData({ ativo: true, tipo: 'ovo', validity_days: 30, controla_estoque: true, ficha_tecnica: [] });
         setVariations([]);
         setEditingId(null);
     };
@@ -237,78 +244,188 @@ export const AdminProducts: React.FC = () => {
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Usado para cálculo de FIFO no estoque.</p>
                             </div>
-                        </div>
 
-                        <div className="border-t pt-4">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-semibold text-lg text-gray-800">Variações de Venda</h3>
-                                <Button type="button" size="sm" variant="outline" onClick={addVariation} className="border-dashed border-2 hover:border-blue-500 hover:text-blue-600">
-                                    <Plus size={16} className="mr-1" /> Adicionar Variação
-                                </Button>
+                            <div className="col-span-2 py-5 border-y bg-gray-50/30 px-4 -mx-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 p-2 bg-blue-100 text-blue-700 rounded-lg">
+                                            <Info size={18} />
+                                        </div>
+                                        <div>
+                                            <Label className="text-base font-bold text-gray-900 leading-tight">Controla Estoque Físico?</Label>
+                                            <p className="text-sm text-gray-500 mt-0.5">
+                                                {formData.controla_estoque
+                                                    ? "Sim, este item existe fisicamente no armazém."
+                                                    : "Não, este é um produto derivado que consome outros itens."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 bg-white p-2 px-4 rounded-xl shadow-sm border border-gray-100">
+                                        <span className={`text-xs font-black uppercase tracking-widest ${formData.controla_estoque ? 'text-blue-600' : 'text-orange-600'}`}>
+                                            {formData.controla_estoque ? 'Estocável' : 'Derivado'}
+                                        </span>
+                                        <Switch
+                                            checked={formData.controla_estoque}
+                                            onCheckedChange={checked => setFormData({ ...formData, controla_estoque: checked })}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-3">
-                                {variations.map((v, idx) => (
-                                    <div key={v.id || idx} className="flex gap-3 items-end bg-gray-50/80 p-4 rounded-xl border border-gray-100 transition-all hover:border-blue-200 hover:bg-white hover:shadow-sm group">
-                                        <div className="flex-1">
-                                            <Label className="text-xs text-gray-500 font-medium">Nome da Variação</Label>
-                                            <Input
-                                                value={v.name}
-                                                onChange={e => updateVariation(idx, 'name', e.target.value)}
-                                                placeholder="Ex: Bandeja 30"
-                                                required
-                                                className="mt-1"
-                                            />
-                                        </div>
-                                        <div className="w-32">
-                                            <Label className="text-xs text-gray-500 font-medium">Preço (R$)</Label>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                value={v.price}
-                                                onChange={e => updateVariation(idx, 'price', Number(e.target.value))}
-                                                required
-                                                className="mt-1 font-mono"
-                                            />
-                                        </div>
-                                        <div className="w-32">
-                                            <Label className="text-xs text-gray-500 font-medium">Unidade</Label>
-                                            <select
-                                                className="w-full border rounded-lg p-2 text-sm bg-white h-10 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                value={v.unit_type}
-                                                onChange={e => updateVariation(idx, 'unit_type', e.target.value)}
-                                            >
-                                                <option value="unidade">Unidade</option>
-                                                <option value="dúzia">Dúzia</option>
-                                                <option value="bandeja">Bandeja</option>
-                                                <option value="kg">Kg</option>
-                                                <option value="caixa">Caixa</option>
-                                            </select>
-                                        </div>
+                            {!formData.controla_estoque && (
+                                <div className="col-span-2 space-y-4 bg-orange-50/50 p-4 rounded-xl border border-orange-100">
+                                    <div className="flex justify-between items-center">
+                                        <h3 className="font-bold text-orange-800">Ficha Técnica (Insumos)</h3>
                                         <Button
                                             type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                            onClick={() => removeVariation(idx, v)}
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setFormData({
+                                                ...formData,
+                                                ficha_tecnica: [...(formData.ficha_tecnica || []), { raw_material_name: 'Ovo Cru', stock_type: 'egg', quantity: 30 }]
+                                            })}
+                                            className="bg-white border-orange-200 text-orange-700 hover:bg-orange-100"
                                         >
-                                            <Trash2 size={18} />
+                                            <Plus size={14} className="mr-1" /> Adicionar Insumo
                                         </Button>
                                     </div>
-                                ))}
-                                {variations.length === 0 && (
-                                    <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                                        <p className="text-sm text-gray-500">Nenhuma variação cadastrada.</p>
-                                        <p className="text-xs text-gray-400 mt-1">Adicione preços e unidades de venda.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        <DialogFooter>
-                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Salvar Produto</Button>
-                        </DialogFooter>
+                                    <div className="space-y-2">
+                                        {(formData.ficha_tecnica || []).map((item, idx) => (
+                                            <div key={idx} className="flex gap-2 items-end">
+                                                <div className="flex-1">
+                                                    <Label className="text-[10px] uppercase font-bold text-orange-600">Insumo</Label>
+                                                    <Input
+                                                        value={item.raw_material_name}
+                                                        onChange={e => {
+                                                            const newFicha = [...(formData.ficha_tecnica || [])];
+                                                            newFicha[idx].raw_material_name = e.target.value;
+                                                            setFormData({ ...formData, ficha_tecnica: newFicha });
+                                                        }}
+                                                        placeholder="Ex: Ovo Cru"
+                                                        className="h-8 text-sm"
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <Label className="text-[10px] uppercase font-bold text-orange-600">Tipo</Label>
+                                                    <select
+                                                        className="w-full h-8 border rounded px-2 text-sm bg-white"
+                                                        value={item.stock_type}
+                                                        onChange={e => {
+                                                            const newFicha = [...(formData.ficha_tecnica || [])];
+                                                            newFicha[idx].stock_type = e.target.value;
+                                                            setFormData({ ...formData, ficha_tecnica: newFicha });
+                                                        }}
+                                                    >
+                                                        <option value="egg">Ovo</option>
+                                                        <option value="meat">Carne</option>
+                                                        <option value="chick">Pinto</option>
+                                                    </select>
+                                                </div>
+                                                <div className="w-20">
+                                                    <Label className="text-[10px] uppercase font-bold text-orange-600">Qtd</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={e => {
+                                                            const newFicha = [...(formData.ficha_tecnica || [])];
+                                                            newFicha[idx].quantity = Number(e.target.value);
+                                                            setFormData({ ...formData, ficha_tecnica: newFicha });
+                                                        }}
+                                                        className="h-8 text-sm"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-orange-300 hover:text-red-500"
+                                                    onClick={() => {
+                                                        const newFicha = (formData.ficha_tecnica || []).filter((_, i) => i !== idx);
+                                                        setFormData({ ...formData, ficha_tecnica: newFicha });
+                                                    }}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        {(formData.ficha_tecnica || []).length === 0 && (
+                                            <p className="text-center py-2 text-xs text-orange-400 italic">Defina quais insumos este produto consome.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="border-t pt-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-semibold text-lg text-gray-800">Variações de Venda</h3>
+                                    <Button type="button" size="sm" variant="outline" onClick={addVariation} className="border-dashed border-2 hover:border-blue-500 hover:text-blue-600">
+                                        <Plus size={16} className="mr-1" /> Adicionar Variação
+                                    </Button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {variations.map((v, idx) => (
+                                        <div key={v.id || idx} className="flex gap-3 items-end bg-gray-50/80 p-4 rounded-xl border border-gray-100 transition-all hover:border-blue-200 hover:bg-white hover:shadow-sm group">
+                                            <div className="flex-1">
+                                                <Label className="text-xs text-gray-500 font-medium">Nome da Variação</Label>
+                                                <Input
+                                                    value={v.name}
+                                                    onChange={e => updateVariation(idx, 'name', e.target.value)}
+                                                    placeholder="Ex: Bandeja 30"
+                                                    required
+                                                    className="mt-1"
+                                                />
+                                            </div>
+                                            <div className="w-32">
+                                                <Label className="text-xs text-gray-500 font-medium">Preço (R$)</Label>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={v.price}
+                                                    onChange={e => updateVariation(idx, 'price', Number(e.target.value))}
+                                                    required
+                                                    className="mt-1 font-mono"
+                                                />
+                                            </div>
+                                            <div className="w-32">
+                                                <Label className="text-xs text-gray-500 font-medium">Unidade</Label>
+                                                <select
+                                                    className="w-full border rounded-lg p-2 text-sm bg-white h-10 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    value={v.unit_type}
+                                                    onChange={e => updateVariation(idx, 'unit_type', e.target.value)}
+                                                >
+                                                    <option value="unidade">Unidade</option>
+                                                    <option value="dúzia">Dúzia</option>
+                                                    <option value="bandeja">Bandeja</option>
+                                                    <option value="kg">Kg</option>
+                                                    <option value="caixa">Caixa</option>
+                                                </select>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                                onClick={() => removeVariation(idx, v)}
+                                            >
+                                                <Trash2 size={18} />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    {variations.length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                            <p className="text-sm text-gray-500">Nenhuma variação cadastrada.</p>
+                                            <p className="text-xs text-gray-400 mt-1">Adicione preços e unidades de venda.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Salvar Produto</Button>
+                            </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

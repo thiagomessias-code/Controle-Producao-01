@@ -1,13 +1,6 @@
 import { supabaseClient, supabase } from "./supabaseClient";
 
-export const PRODUCT_TRANSFORMATION_RULES: Record<string, { type: "egg" | "meat" | "chick", subtype: string }> = {
-    "Ovo Conserva": { type: "egg", subtype: "ovo cru" },
-    "Ovos Conserva": { type: "egg", subtype: "ovo cru" },
-    "Ovos em Conserva": { type: "egg", subtype: "ovo cru" },
-    "Churrasquinho": { type: "meat", subtype: "Abate" },
-    "Churrasquinho de Codorna": { type: "meat", subtype: "Abate" },
-    "Codorna Abatida": { type: "meat", subtype: "Abate" }
-};
+// PRODUCT_TRANSFORMATION_RULES removed - now using 'ficha_tecnica' defined in DB per product.
 
 export interface InventoryItem {
     id: string;
@@ -135,8 +128,25 @@ export const warehouseApi = {
         return updatedInventory.find(i => i.id === itemId)!;
     },
 
-    processSale: async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda"): Promise<any[]> => {
-        // Find items (FIFO)
+    processSale: async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[]): Promise<any[]> => {
+        const originsUsed: any[] = [];
+
+        // If it's a derivative product (has fichaTecnica), we deduct each ingredient
+        if (fichaTecnica && fichaTecnica.length > 0) {
+            for (const ingredient of fichaTecnica) {
+                const totalIngredientQty = ingredient.quantity * quantity;
+                const ingredientOrigins = await warehouseApi.processSale(
+                    ingredient.stock_type,
+                    ingredient.raw_material_name,
+                    totalIngredientQty,
+                    `${context} (insumo de ${subtype})`
+                );
+                originsUsed.push(...ingredientOrigins);
+            }
+            return originsUsed;
+        }
+
+        // Standard deduction logic
         const inventory = await warehouseApi.getInventory();
         const relevantItems = inventory
             .filter(i => {
@@ -174,6 +184,10 @@ export const warehouseApi = {
             });
 
             remainingToDeduct -= amountFromThisItem;
+        }
+
+        if (remainingToDeduct > 0) {
+            throw new Error(`Estoque insuficiente para ${subtype}. Faltam ${remainingToDeduct} unidades.`);
         }
 
         return originsUsed;

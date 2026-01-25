@@ -88,7 +88,7 @@ export default function RegisterSale() {
 
   // Helper: Get Available Stock for Eggs/Meat
   // Helper: Get Available Stock for Eggs/Meat/Animals
-  const getAvailableStock = (name: string): number => {
+  const getAvailableStock = (name: string, typeHint?: string): number => {
     let target = name.toLowerCase();
     const product = products.find(p => p.nome.toLowerCase() === target);
 
@@ -97,21 +97,19 @@ export default function RegisterSale() {
       if (product.ficha_tecnica.length === 0) return 0;
 
       const ingredientAvailabilities = product.ficha_tecnica.map(ing => {
-        const availableIng = getAvailableStock(ing.raw_material_name);
+        const availableIng = getAvailableStock(ing.raw_material_name, ing.stock_type);
         return Math.floor(availableIng / ing.quantity);
       });
 
       return Math.min(...ingredientAvailabilities);
     }
 
-    // Logic for Chicks (Pintos) - Use Warehouse Inventory as requested
-    // Previously we summed active groups, but user stated stock is in Warehouse (Armazém).
-    // So we let it fall through to the default inventory logic below which matches by name.
-
     // Default: Warehouse Inventory (Eggs, Meat, Feed, Meds, etc.)
     return inventory
       .filter(i => {
         if (i.status !== "in_stock") return false;
+        if (typeHint && i.type !== typeHint) return false;
+
         const invName = (i.subtype || "").toLowerCase();
 
         // Specific mapping for Meat/Slaughter
@@ -120,16 +118,13 @@ export default function RegisterSale() {
           return true;
         }
 
-        // Remove 's' from both ends for comparison (singular handling)
-        const normalize = (str: string) => str.replace(/s$/, "");
+        // Improved normalization for singular/plural comparison
+        const normalize = (str: string) => str.replace(/s\b/g, "").replace(/\s+/g, " ").trim();
         const targetNorm = normalize(target);
         const invNorm = normalize(invName);
 
-        // Special case for Pintos: match 'codorna pinto' with 'pintos' or 'pinto'
-        if (targetNorm.includes('pinto') && invNorm.includes('pinto')) return true;
-
         // General fuzzy match (bidirectional)
-        return invName.includes(targetNorm) || target.includes(invNorm) || invNorm.includes(target);
+        return invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
       })
       .reduce((acc, i) => acc + i.quantity, 0);
   };

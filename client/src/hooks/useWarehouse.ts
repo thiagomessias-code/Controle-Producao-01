@@ -35,9 +35,9 @@ export function useWarehouse() {
         }
     };
 
-    const processSale = async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda") => {
+    const processSale = async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[]) => {
         try {
-            const results = await warehouseApi.processSale(type, subtype, quantity, context);
+            const results = await warehouseApi.processSale(type, subtype, quantity, context, fichaTecnica);
             await fetchInventory(); // Refresh to show updated quantities
             return results;
         } catch (err) {

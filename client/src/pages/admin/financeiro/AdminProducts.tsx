@@ -338,8 +338,8 @@ export const AdminProducts: React.FC = () => {
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-orange-300 hover:text-red-500"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 text-orange-300 hover:text-red-500"
                                                     onClick={() => {
                                                         const newFicha = (formData.ficha_tecnica || []).filter((_, i) => i !== idx);
                                                         setFormData({ ...formData, ficha_tecnica: newFicha });
@@ -355,77 +355,78 @@ export const AdminProducts: React.FC = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
 
-                            <div className="border-t pt-4">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-semibold text-lg text-gray-800">Variações de Venda</h3>
-                                    <Button type="button" size="sm" variant="outline" onClick={addVariation} className="border-dashed border-2 hover:border-blue-500 hover:text-blue-600">
-                                        <Plus size={16} className="mr-1" /> Adicionar Variação
-                                    </Button>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {variations.map((v, idx) => (
-                                        <div key={v.id || idx} className="flex gap-3 items-end bg-gray-50/80 p-4 rounded-xl border border-gray-100 transition-all hover:border-blue-200 hover:bg-white hover:shadow-sm group">
-                                            <div className="flex-1">
-                                                <Label className="text-xs text-gray-500 font-medium">Nome da Variação</Label>
-                                                <Input
-                                                    value={v.name}
-                                                    onChange={e => updateVariation(idx, 'name', e.target.value)}
-                                                    placeholder="Ex: Bandeja 30"
-                                                    required
-                                                    className="mt-1"
-                                                />
-                                            </div>
-                                            <div className="w-32">
-                                                <Label className="text-xs text-gray-500 font-medium">Preço (R$)</Label>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    value={v.price}
-                                                    onChange={e => updateVariation(idx, 'price', Number(e.target.value))}
-                                                    required
-                                                    className="mt-1 font-mono"
-                                                />
-                                            </div>
-                                            <div className="w-32">
-                                                <Label className="text-xs text-gray-500 font-medium">Unidade</Label>
-                                                <select
-                                                    className="w-full border rounded-lg p-2 text-sm bg-white h-10 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-                                                    value={v.unit_type}
-                                                    onChange={e => updateVariation(idx, 'unit_type', e.target.value)}
-                                                >
-                                                    <option value="unidade">Unidade</option>
-                                                    <option value="dúzia">Dúzia</option>
-                                                    <option value="bandeja">Bandeja</option>
-                                                    <option value="kg">Kg</option>
-                                                    <option value="caixa">Caixa</option>
-                                                </select>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                                onClick={() => removeVariation(idx, v)}
-                                            >
-                                                <Trash2 size={18} />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    {variations.length === 0 && (
-                                        <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                                            <p className="text-sm text-gray-500">Nenhuma variação cadastrada.</p>
-                                            <p className="text-xs text-gray-400 mt-1">Adicione preços e unidades de venda.</p>
-                                        </div>
-                                    )}
-                                </div>
+                        <div className="border-t pt-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-semibold text-lg text-gray-800">Variações de Venda</h3>
+                                <Button type="button" size="sm" variant="outline" onClick={addVariation} className="border-dashed border-2 hover:border-blue-500 hover:text-blue-600">
+                                    <Plus size={16} className="mr-1" /> Adicionar Variação
+                                </Button>
                             </div>
 
-                            <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Salvar Produto</Button>
-                            </DialogFooter>
+                            <div className="space-y-3">
+                                {variations.map((v, idx) => (
+                                    <div key={v.id || idx} className="flex gap-3 items-end bg-gray-50/80 p-4 rounded-xl border border-gray-100 transition-all hover:border-blue-200 hover:bg-white hover:shadow-sm group">
+                                        <div className="flex-1">
+                                            <Label className="text-xs text-gray-500 font-medium">Nome da Variação</Label>
+                                            <Input
+                                                value={v.name}
+                                                onChange={e => updateVariation(idx, 'name', e.target.value)}
+                                                placeholder="Ex: Bandeja 30"
+                                                required
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        <div className="w-32">
+                                            <Label className="text-xs text-gray-500 font-medium">Preço (R$)</Label>
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={v.price}
+                                                onChange={e => updateVariation(idx, 'price', Number(e.target.value))}
+                                                required
+                                                className="mt-1 font-mono"
+                                            />
+                                        </div>
+                                        <div className="w-32">
+                                            <Label className="text-xs text-gray-500 font-medium">Unidade</Label>
+                                            <select
+                                                className="w-full border rounded-lg p-2 text-sm bg-white h-10 mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                value={v.unit_type}
+                                                onChange={e => updateVariation(idx, 'unit_type', e.target.value)}
+                                            >
+                                                <option value="unidade">Unidade</option>
+                                                <option value="dúzia">Dúzia</option>
+                                                <option value="bandeja">Bandeja</option>
+                                                <option value="kg">Kg</option>
+                                                <option value="caixa">Caixa</option>
+                                            </select>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 w-9 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                            onClick={() => removeVariation(idx, v)}
+                                        >
+                                            <Trash2 size={18} />
+                                        </Button>
+                                    </div>
+                                ))}
+                                {variations.length === 0 && (
+                                    <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                        <p className="text-sm text-gray-500">Nenhuma variação cadastrada.</p>
+                                        <p className="text-xs text-gray-400 mt-1">Adicione preços e unidades de venda.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <DialogFooter>
+                            <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Salvar Produto</Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>

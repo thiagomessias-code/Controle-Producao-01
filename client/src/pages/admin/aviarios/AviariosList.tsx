@@ -230,13 +230,13 @@ export const AviariosList: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => handleOpenAviaryModal(aviary)} className="p-3 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all">
+                                                <button onClick={() => handleOpenAviaryModal(aviary)} className="p-3 text-blue-500 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100 rounded-2xl transition-all border border-blue-100/50" title="Editar Aviário">
                                                     <Edit size={20} />
                                                 </button>
-                                                <button onClick={() => handleShowQR(aviary.qr_code || `AVIARIO:${aviary.id}`, aviary.nome)} className="p-3 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
+                                                <button onClick={() => handleShowQR(aviary.qr_code || `AVIARIO:${aviary.id}`, aviary.nome)} className="p-3 text-indigo-500 hover:text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 rounded-2xl transition-all border border-indigo-100/50" title="Ver QR Code">
                                                     <QrCode size={20} />
                                                 </button>
-                                                <button onClick={() => handleDeleteAviary(aviary.id)} className="p-3 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all">
+                                                <button onClick={() => handleDeleteAviary(aviary.id)} className="p-3 text-red-400 hover:text-red-600 bg-red-50/50 hover:bg-red-100 rounded-2xl transition-all border border-red-100/50" title="Excluir Aviário">
                                                     <Trash2 size={20} />
                                                 </button>
                                             </div>
@@ -280,13 +280,13 @@ export const AviariosList: React.FC = () => {
                                                                             </div>
                                                                         </div>
                                                                         <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                                                                            <button onClick={() => handleOpenGroupModal(aviary.id, group)} className="p-2.5 text-gray-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                                                                            <button onClick={() => handleOpenGroupModal(aviary.id, group)} className="p-2.5 text-blue-500 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100 rounded-xl transition-all border border-blue-100/30">
                                                                                 <Edit size={18} />
                                                                             </button>
-                                                                            <button onClick={() => handleShowQR(group.qr_code || `GRUPO:${group.id}`, group.nome)} className="p-2.5 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                                                                            <button onClick={() => handleShowQR(group.qr_code || `GRUPO:${group.id}`, group.nome)} className="p-2.5 text-indigo-500 hover:text-indigo-700 bg-indigo-50/50 hover:bg-indigo-100 rounded-xl transition-all border border-indigo-100/30">
                                                                                 <QrCode size={18} />
                                                                             </button>
-                                                                            <button onClick={() => handleDeleteGroup(group.id)} className="p-2.5 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
+                                                                            <button onClick={() => handleDeleteGroup(group.id)} className="p-2.5 text-red-400 hover:text-red-600 bg-red-50/50 hover:bg-red-100 rounded-xl transition-all border border-red-100/30">
                                                                                 <Trash2 size={18} />
                                                                             </button>
                                                                         </div>
@@ -317,13 +317,13 @@ export const AviariosList: React.FC = () => {
                                                                                                 CAP: {cage.capacity}
                                                                                             </span>
                                                                                             <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                                                                                                <button onClick={() => handleOpenCageModal(group.id, cage)} className="p-1.5 text-gray-200 hover:text-blue-600 transition-colors">
+                                                                                                <button onClick={() => handleOpenCageModal(group.id, cage)} className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100">
                                                                                                     <Edit size={14} />
                                                                                                 </button>
-                                                                                                <button onClick={() => handleShowQR(cage.qr_code || `GAIOLA:${cage.id}`, cage.name || cage.nome)} className="p-1.5 text-gray-200 hover:text-indigo-600 transition-colors">
+                                                                                                <button onClick={() => handleShowQR(cage.qr_code || `GAIOLA:${cage.id}`, cage.name || cage.nome)} className="p-1.5 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100">
                                                                                                     <QrCode size={14} />
                                                                                                 </button>
-                                                                                                <button onClick={() => handleDeleteCage(cage.id)} className="p-1.5 text-gray-200 hover:text-red-500 transition-colors">
+                                                                                                <button onClick={() => handleDeleteCage(cage.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100">
                                                                                                     <Trash2 size={14} />
                                                                                                 </button>
                                                                                             </div>

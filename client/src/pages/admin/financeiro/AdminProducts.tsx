@@ -450,7 +450,7 @@ export const AdminProducts: React.FC = () => {
                                     {prod.tipo?.replace('_', ' ')}
                                 </span>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => startEdit(prod)} className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-50 hover:text-blue-600">
+                            <Button variant="ghost" size="sm" onClick={() => startEdit(prod)} className="hover:bg-blue-50 hover:text-blue-600 border border-transparent hover:border-blue-100">
                                 <Edit size={16} />
                             </Button>
                         </CardHeader>

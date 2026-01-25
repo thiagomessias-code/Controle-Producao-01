@@ -167,7 +167,7 @@ export const AdminUsers: React.FC = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex justify-end gap-1 transition-opacity">
                                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleOpenModal(user)}>
                                                 <Edit size={16} className="text-gray-500 hover:text-blue-600" />
                                             </Button>

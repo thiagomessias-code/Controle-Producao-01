@@ -274,11 +274,11 @@ export const AdminStock: React.FC = () => {
                                             <span className="text-[10px] text-gray-400 ml-1 font-bold">{item.type === 'meat' ? 'kg' : 'un'}</span>
                                         </td>
                                         <td className="p-4 pr-6 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openEdit(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg h-9 w-9 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm">
+                                            <div className="flex justify-end gap-2 transition-opacity">
+                                                <button onClick={() => openEdit(item)} className="p-2 bg-blue-50 text-blue-600 rounded-lg h-9 w-9 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-transparent hover:border-blue-100">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-50 text-red-600 rounded-lg h-9 w-9 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 bg-red-50 text-red-600 rounded-lg h-9 w-9 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm border border-transparent hover:border-red-100">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>

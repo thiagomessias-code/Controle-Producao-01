@@ -279,7 +279,7 @@ export const AdminFeed: React.FC = () => {
                                                     <td className="p-4 font-medium text-green-600">{formatCurrency(feed.price_per_kg)}</td>
                                                     <td className="p-4 text-gray-500">{feed.supplier_default || '-'}</td>
                                                     <td className="p-4 pr-6 text-right">
-                                                        <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <div className="flex justify-end gap-2 transition-opacity">
                                                             <button onClick={() => openFeedDialog(feed)} className="p-1 hover:bg-blue-100 text-blue-600 rounded mb-0.5"><Edit size={16} /></button>
                                                             <button onClick={() => handleDeleteFeed(feed.id)} className="p-1 hover:bg-red-100 text-red-500 rounded mb-0.5"><Trash2 size={16} /></button>
                                                         </div>

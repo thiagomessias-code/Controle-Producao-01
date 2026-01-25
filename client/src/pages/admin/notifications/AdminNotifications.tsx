@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Bell, Calendar, Send, Edit, Trash2, Users } from 'lucide-react';
+import { Bell, Calendar, Send, Edit, Trash2, Users, Activity, CheckCircle2, Clock } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/api/supabaseClient';
@@ -11,10 +11,13 @@ import { useAuth } from '@/hooks/useAuth';
 export const AdminNotifications: React.FC = () => {
     const { user } = useAuth();
     const [templates, setTemplates] = React.useState<any[]>([]);
+    const [instances, setInstances] = React.useState<any[]>([]);
     const [users, setUsers] = React.useState<any[]>([]);
     const [aviaries, setAviaries] = React.useState<any[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [sending, setSending] = React.useState(false);
+    const [monitoring, setMonitoring] = React.useState(false);
+    const [lastRefresh, setLastRefresh] = React.useState(new Date());
 
     // Form state
     const [destId, setDestId] = React.useState('all');
@@ -37,14 +40,21 @@ export const AdminNotifications: React.FC = () => {
 
     const fetchData = async () => {
         try {
-            const [{ data: tmpls }, { data: usrs }, { data: avs }] = await Promise.all([
+            const today = new Date().toISOString().split('T')[0];
+            const [{ data: tmpls }, { data: usrs }, { data: avs }, { data: insts }] = await Promise.all([
                 supabase.from('tasks_templates').select('*').eq('active', true).order('default_time'),
                 supabase.from('users').select('id, name, role'),
-                supabase.from('aviarios').select('id, nome')
+                supabase.from('aviarios').select('id, nome'),
+                supabase.from('tasks_instances')
+                    .select('*, tasks_templates(title)')
+                    .eq('scheduled_date', today)
+                    .order('scheduled_time', { ascending: true })
             ]);
             setTemplates(tmpls || []);
             setUsers(usrs || []);
             setAviaries(avs || []);
+            setInstances(insts || []);
+            setLastRefresh(new Date());
         } catch (error) {
             console.error("Erro ao buscar dados:", error);
         } finally {
@@ -294,6 +304,62 @@ export const AdminNotifications: React.FC = () => {
                             >
                                 + Nova Tarefa Recorrente
                             </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-sm hover:shadow-lg transition-all duration-300">
+                    <div className="h-1.5 bg-indigo-500 w-full rounded-t-2xl"></div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                <Activity size={20} />
+                            </div>
+                            Monitor de Disparos
+                        </CardTitle>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => fetchData()}
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600"
+                            title="Atualizar Status"
+                        >
+                            <Activity size={16} className={loading ? "animate-spin" : ""} />
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-xs text-gray-500 mb-4 font-medium italic">
+                            Status das notificações automáticas de hoje. Atualizado às {lastRefresh.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+                        </p>
+                        <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                            {instances.length === 0 ? (
+                                <div className="text-center py-6 border border-dashed rounded-xl bg-gray-50/50">
+                                    <Clock className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Aguardando geração de tarefas...</p>
+                                </div>
+                            ) : (
+                                instances.map(inst => (
+                                    <div key={inst.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-gray-700 truncate">{inst.tasks_templates?.title || 'Tarefa'}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-black">
+                                                    ⏰ {inst.scheduled_time.substring(0, 5)}
+                                                </span>
+                                                {inst.notified_at ? (
+                                                    <span className="text-[9px] text-indigo-500 font-black uppercase flex items-center gap-1">
+                                                        <CheckCircle2 size={10} /> DISPARADO ÀS {new Date(inst.notified_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] text-amber-500 font-black uppercase flex items-center gap-1">
+                                                        <Clock size={10} /> AGUARDANDO HORÁRIO
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </CardContent>
                 </Card>

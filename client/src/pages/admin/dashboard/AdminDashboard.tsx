@@ -24,7 +24,7 @@ import { supabaseClient, supabase } from '@/api/supabaseClient';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { aviariesApi, Aviary } from '@/api/aviaries';
 import { groupsApi, Group } from '@/api/groups';
-import { cagesApi, Cage } from '@/api/cages';
+import { caixasApi, GrowthBox } from '@/api/caixas';
 
 export const AdminDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -33,6 +33,7 @@ export const AdminDashboard: React.FC = () => {
         aviarios: Aviary[],
         groups: Group[],
         cages: Cage[],
+        caixas: GrowthBox[],
         warehouse: any[],
         recentSlaughter: any[],
         recentProduction: any[]
@@ -40,6 +41,7 @@ export const AdminDashboard: React.FC = () => {
         aviarios: [],
         groups: [],
         cages: [],
+        caixas: [],
         warehouse: [],
         recentSlaughter: [],
         recentProduction: []
@@ -54,10 +56,11 @@ export const AdminDashboard: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [avs, grps, cgs, notifs, stck, sltr, prod] = await Promise.all([
+                const [avs, grps, cgs, cxs, notifs, stck] = await Promise.all([
                     aviariesApi.getAll(),
                     groupsApi.getAll(),
                     cagesApi.getAll(),
+                    caixasApi.getAll(),
                     supabase.from('notificacoes').select('id', { count: 'exact' }).eq('lida', false),
                     supabase.from('estoque').select('*'),
                 ]);
@@ -70,6 +73,7 @@ export const AdminDashboard: React.FC = () => {
                     aviarios: avs || [],
                     groups: grps || [],
                     cages: cgs || [],
+                    caixas: cxs || [],
                     warehouse: warehouseData,
                     recentSlaughter: [],
                     recentProduction: []
@@ -97,8 +101,16 @@ export const AdminDashboard: React.FC = () => {
     ];
 
     // Stats calculations
-    const totalBirds = data.cages.reduce((acc, c) => acc + (c.currentQuantity || 0), 0);
-    const totalCapacity = data.cages.reduce((acc, c) => acc + (c.capacity || 0), 0);
+    const cageBirds = data.cages.reduce((acc, c) => acc + (c.currentQuantity || 0), 0);
+    const boxBirds = data.caixas.reduce((acc, b) => {
+        const batchQty = b.lotes?.reduce((sum, l) => sum + (l.quantidade || 0), 0) || 0;
+        return acc + batchQty;
+    }, 0);
+    const totalBirds = cageBirds + boxBirds;
+
+    const totalCapacityCages = data.cages.reduce((acc, c) => acc + (c.capacity || 0), 0);
+    const totalCapacityBoxes = data.caixas.reduce((acc, b) => acc + (b.capacidade || 0), 0);
+    const totalCapacity = totalCapacityCages + totalCapacityBoxes;
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -148,8 +160,53 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             {/* 3. Modern Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-bold text-gray-400 uppercase tracking-widest">Total de Aves</CardTitle>
+                        <Users className="h-4 w-4 text-blue-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-gray-900">{totalBirds}</div>
+                        <p className="text-xs text-blue-600 font-bold mt-1">
+                            {((totalBirds / totalCapacity) * 100).toFixed(1)}% de ocupação
+                        </p>
+                    </CardContent>
+                </Card>
 
+                <Card className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-bold text-gray-400 uppercase tracking-widest">Capacidade</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-gray-900">{totalCapacity}</div>
+                        <p className="text-xs text-gray-400 font-bold mt-1">Lugar para mais {totalCapacity - totalBirds}</p>
+                    </CardContent>
+                </Card>
 
+                <Card className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-bold text-gray-400 uppercase tracking-widest">Notificações</CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-gray-900">{stats.pendingNotifications}</div>
+                        <p className="text-xs text-orange-600 font-bold mt-1">Ações pendentes hoje</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-md bg-white hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-bold text-gray-400 uppercase tracking-widest">Aviários Ativos</CardTitle>
+                        <Activity className="h-4 w-4 text-indigo-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-black text-gray-900">{data.aviarios.length}</div>
+                        <p className="text-xs text-gray-400 font-bold mt-1">Estruturas mapeadas</p>
+                    </CardContent>
+                </Card>
+            </div>
             {/* 4. Warehouse & Inventory Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="border-none shadow-md bg-gradient-to-br from-white to-orange-50/30">

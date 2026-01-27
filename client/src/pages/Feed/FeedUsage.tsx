@@ -365,7 +365,8 @@ export default function FeedUsage() {
   };
 
   const handleToggleGrowth = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, groupId: "", cageId: "" }));
+    setIsGrowthBox(e.target.checked);
+    setFormData(prev => ({ ...prev, groupId: "", cageId: "", batchId: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -99,7 +99,8 @@ const mapLoteToBatch = (lote: any): Batch => {
     location: lote.gaiolas?.nome || lote.caixas_crescimento?.nome || "Sem Local",
     meta_mortalidade: lote.meta_mortalidade,
     meta_producao_diaria: lote.meta_producao_diaria,
-    categoryId: lote.category_id
+    categoryId: lote.category_id,
+    history: lote.history || []
   };
 };
 
@@ -146,8 +147,8 @@ export const batchesApi = {
       females: data.females || 0,
       parent_id: data.parentId,
       meta_mortalidade: data.meta_mortalidade,
-      meta_producao_diaria: data.meta_producao_diaria
-      // history: data.history // If DB supports it
+      meta_producao_diaria: data.meta_producao_diaria,
+      history: data.history || []
     };
 
     // If cageId is provided, we should probably try to get the galpao_id from the cage first
@@ -170,6 +171,7 @@ export const batchesApi = {
     if (data.parentId) payload.parent_id = data.parentId;
     if (data.meta_mortalidade !== undefined) payload.meta_mortalidade = data.meta_mortalidade;
     if (data.meta_producao_diaria !== undefined) payload.meta_producao_diaria = data.meta_producao_diaria;
+    if (data.history !== undefined) payload.history = data.history;
 
     // History is complex. If backend has no history column, we can't save it directly.
     // Ideally we append to notes or use audit_logs. For now, we enable notes to allow saving transfer summaries.

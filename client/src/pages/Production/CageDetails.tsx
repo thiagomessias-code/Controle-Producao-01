@@ -376,15 +376,19 @@ export default function CageDetails() {
                             ></div>
                         </div>
 
-                        {activeGroup && (
+                        {activeBatches.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-100">
                                 <div className="p-2 bg-blue-50 rounded-xl">
-                                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Machos</p>
-                                    <p className="text-xl font-black text-blue-700 tabular-nums">{activeGroup.males || 0}</p>
+                                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest">Machos (Total)</p>
+                                    <p className="text-xl font-black text-blue-700 tabular-nums">
+                                        {activeBatches.reduce((acc, b) => acc + (b.males || 0), 0)}
+                                    </p>
                                 </div>
                                 <div className="p-2 bg-pink-50 rounded-xl">
-                                    <p className="text-[9px] font-black text-pink-600 uppercase tracking-widest">Fêmeas</p>
-                                    <p className="text-xl font-black text-pink-700 tabular-nums">{activeGroup.females || 0}</p>
+                                    <p className="text-[9px] font-black text-pink-600 uppercase tracking-widest">Fêmeas (Total)</p>
+                                    <p className="text-xl font-black text-pink-700 tabular-nums">
+                                        {activeBatches.reduce((acc, b) => acc + (b.females || 0), 0)}
+                                    </p>
                                 </div>
                             </div>
                         )}

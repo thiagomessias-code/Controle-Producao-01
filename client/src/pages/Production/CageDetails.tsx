@@ -29,10 +29,21 @@ export default function CageDetails() {
     const { update: updateBatch, create: createBatch } = useBatches();
     const { batches, isLoading: batchesLoading, refetch: refetchBatches } = useBatchesByCageId(cageId || "");
 
-    // Find the active batch in this cage - Prioritizing batches with birds to avoid selecting empty active records
-    const activeGroup = (batches || [])
+    // All active batches in this cage
+    const activeBatches = (batches || [])
         .filter((b: any) => String(b.cageId) === String(cageId) && b.status === 'active')
-        .sort((a, b) => (b.quantity || 0) - (a.quantity || 0))[0];
+        .sort((a, b) => (b.quantity || 0) - (a.quantity || 0));
+
+    // Selection for actions (defaults to the first/largest)
+    const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (activeBatches.length > 0 && !selectedBatchId) {
+            setSelectedBatchId(activeBatches[0].id);
+        }
+    }, [activeBatches, selectedBatchId]);
+
+    const activeGroup = activeBatches.find(b => b.id === selectedBatchId) || activeBatches[0];
 
     const [isMortalityModalOpen, setIsMortalityModalOpen] = useState(false);
     const [mortalityQuantity, setMortalityQuantity] = useState("");
@@ -397,11 +408,35 @@ export default function CageDetails() {
                         <CardTitle className="text-lg">Lote Atual</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {activeGroup ? (
-                            <div>
-                                <p className="font-semibold">{activeGroup.name}</p>
-                                <p className="text-xs text-muted-foreground">ID: {activeGroup.id.slice(0, 8)}</p>
-                                <p className="text-xs text-muted-foreground">Nasc: {formatDate(activeGroup.birthDate)}</p>
+                        {activeBatches.length > 0 ? (
+                            <div className="space-y-3">
+                                {activeBatches.length > 1 && (
+                                    <div className="mb-2 p-2 bg-amber-50 rounded border border-amber-100 italic text-[10px] text-amber-800">
+                                        ⚠️ Esta gaiola possui múltiplos lotes. Selecione um abaixo para gerenciar mortalidade/alimentação individual.
+                                    </div>
+                                )}
+                                {activeBatches.map(batch => (
+                                    <div
+                                        key={batch.id}
+                                        onClick={() => setSelectedBatchId(batch.id)}
+                                        className={`p-3 rounded-lg border transition-all cursor-pointer ${selectedBatchId === batch.id
+                                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200 shadow-sm'
+                                                : 'border-gray-100 hover:border-blue-200'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className={`font-bold text-sm ${selectedBatchId === batch.id ? 'text-blue-700' : 'text-gray-800'}`}>
+                                                    {batch.name}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground">ID: {batch.id.slice(0, 8)} • {formatDate(batch.birthDate)}</p>
+                                            </div>
+                                            <span className="text-xs font-black text-gray-700 bg-white px-2 py-0.5 rounded-full border border-gray-100 shadow-sm">
+                                                {batch.quantity} aves
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <p className="text-muted-foreground italic">Nenhum lote ativo nesta gaiola.</p>
@@ -436,30 +471,29 @@ export default function CageDetails() {
                 </div>
             )}
 
-            {activeGroup && activeGroup.history && (
-                <Card className="border-2">
-                    <CardHeader>
-                        <CardTitle>Histórico do Lote</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {activeGroup.history.slice().reverse().map((event: any, index: number) => (
-                                <div key={index} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
-                                    <div>
-                                        <p className="font-semibold text-sm">{event.event}</p>
-                                        <p className="text-[10px] text-muted-foreground">{formatDateTime(event.date)}</p>
-                                        {event.details && <p className="text-[11px] text-gray-600 mt-1 italic">{event.details}</p>}
-                                    </div>
-                                    {event.quantity > 0 && (
-                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg font-bold">
-                                            {event.event.includes("Mortalidade") ? "-" : ""}{event.quantity}
-                                        </span>
-                                    )}
+            <Card className="border-2 border-blue-100 shadow-lg shadow-blue-50">
+                <CardHeader className="bg-blue-50/50 border-b border-blue-100 pb-3">
+                    <CardTitle className="text-sm font-black uppercase text-blue-700">Linha do Tempo: {activeGroup?.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                    <div className="space-y-4">
+                        {activeGroup.history.slice().reverse().map((event: any, index: number) => (
+                            <div key={index} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
+                                <div>
+                                    <p className="font-semibold text-sm">{event.event}</p>
+                                    <p className="text-[10px] text-muted-foreground">{formatDateTime(event.date)}</p>
+                                    {event.details && <p className="text-[11px] text-gray-600 mt-1 italic">{event.details}</p>}
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                                {event.quantity > 0 && (
+                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg font-bold">
+                                        {event.event.includes("Mortalidade") ? "-" : ""}{event.quantity}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
             )}
 
             {/* Mortality Modal */}

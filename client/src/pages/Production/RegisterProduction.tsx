@@ -48,7 +48,7 @@ export default function RegisterProduction() {
         b.cageId === formData.cageId && b.status === 'active'
       ) || [];
       setActiveBatches(active);
-      const total = active.reduce((acc, b) => acc + (b.quantidade || 0), 0);
+      const total = active.reduce((acc, b) => acc + (b.quantity || 0), 0);
       setTotalBirdsInCage(total);
     } else {
       setActiveBatches([]);

@@ -341,12 +341,19 @@ export const AdminLotes: React.FC = () => {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
-                                        {loading ? <div className="p-8 text-center text-gray-400">Carregando lotes...</div> : lotes.length === 0 ? (
-                                            <div className="text-center p-8 text-gray-400">Nenhum lote encontrado.</div>
+                                        {loading ? (
+                                            <div className="p-8 text-center text-gray-400">
+                                                <span>Carregando lotes...</span>
+                                            </div>
+                                        ) : lotes.length === 0 ? (
+                                            <div className="text-center p-8 text-gray-400">
+                                                <span>Nenhum lote encontrado.</span>
+                                            </div>
                                         ) : (
-                                            lotes.map(lote => {
+                                            lotes.map((lote, idx) => {
                                                 const age = calculateAge(lote.birthDate || '');
                                                 const isSelected = selectedLote?.id === lote.id;
+                                                const batchKey = `${lote.id}-${idx}`;
 
                                                 let badgeColor = "bg-blue-100 text-blue-800";
                                                 let phaseText = "Ativo";
@@ -357,7 +364,7 @@ export const AdminLotes: React.FC = () => {
 
                                                 return (
                                                     <div
-                                                        key={lote.id}
+                                                        key={batchKey}
                                                         onClick={() => setSelectedLote(lote)}
                                                         className={`p-4 rounded-xl border transition-all cursor-pointer group relative overflow-hidden ${isSelected ? 'border-blue-500 bg-blue-50/50 shadow-md ring-1 ring-blue-200' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-sm'}`}
                                                     >
@@ -367,25 +374,27 @@ export const AdminLotes: React.FC = () => {
                                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${badgeColor}`}>{phaseText}</span>
                                                             <span className="text-xs font-medium text-gray-500 flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" />
-                                                                {age} dias
+                                                                <span>{age}</span> <span>dias</span>
                                                             </span>
                                                         </div>
 
-                                                        <h3 className={`font-bold text-base mb-1 ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{lote.name}</h3>
+                                                        <h3 className={`font-bold text-base mb-1 ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
+                                                            <span>{lote.name}</span>
+                                                        </h3>
 
                                                         <div className="flex flex-col gap-1">
                                                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                                                 <Bird className="w-3 h-3" />
-                                                                {lote.galpao_name || 'Sem Galpão'} • {lote.gaiola_name || '...'}
+                                                                <span>{lote.galpao_name || 'Sem Galpão'}</span> <span> • </span> <span>{lote.gaiola_name || '...'}</span>
                                                             </p>
                                                             <div className="flex items-center gap-4 text-xs mt-2 pt-2 border-t border-gray-100/50">
                                                                 <div>
                                                                     <span className="text-gray-400 block text-[10px] uppercase">Qtd. Atual</span>
-                                                                    <span className="font-bold text-gray-700">{lote.quantity || 0} aves</span>
+                                                                    <span className="font-bold text-gray-700"><span>{lote.quantity || 0}</span> <span>aves</span></span>
                                                                 </div>
                                                                 <div>
                                                                     <span className="text-gray-400 block text-[10px] uppercase">ID Sistema</span>
-                                                                    <span className="font-mono text-gray-500">#{lote.id.substring(0, 6)}</span>
+                                                                    <span className="font-mono text-gray-500"><span>#{lote.id.substring(0, 6)}</span></span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -453,18 +462,27 @@ export const AdminLotes: React.FC = () => {
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody className="divide-y divide-gray-100">
-                                                                    {loteHistory.production.map((item, i) => (
-                                                                        <tr key={i} className="hover:bg-orange-50/20 transition-colors">
-                                                                            <td className="px-4 py-3 text-gray-600">{new Date(item.date || item.data_producao).toLocaleDateString()}</td>
-                                                                            <td className="px-4 py-3 font-bold text-gray-900">+{item.quantity}</td>
-                                                                            <td className="px-4 py-3">
-                                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${item.eggType === 'fertile' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                                                    {item.eggType || 'Comercial'}
-                                                                                </span>
-                                                                            </td>
-                                                                            <td className="px-4 py-3 text-xs font-mono">{item.quality || 'A'}</td>
-                                                                        </tr>
-                                                                    ))}
+                                                                    {loteHistory.production.map((item, i) => {
+                                                                        const prodKey = `prod-${item.id || i}-${item.data_producao || item.date}`;
+                                                                        return (
+                                                                            <tr key={prodKey} className="hover:bg-orange-50/20 transition-colors">
+                                                                                <td className="px-4 py-3 text-gray-600">
+                                                                                    <span>{new Date(item.date || item.data_producao).toLocaleDateString()}</span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3 font-bold text-gray-900">
+                                                                                    <span>+</span><span>{item.quantity}</span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3">
+                                                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${item.eggType === 'fertile' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                                                        <span>{item.eggType || 'Comercial'}</span>
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3 text-xs font-mono">
+                                                                                    <span>{item.quality || 'A'}</span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
                                                                 </tbody>
                                                             </table>
                                                         )}
@@ -503,13 +521,22 @@ export const AdminLotes: React.FC = () => {
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody className="divide-y divide-gray-100">
-                                                                    {loteHistory.mortality.map((item, i) => (
-                                                                        <tr key={i} className="hover:bg-red-50/20 transition-colors">
-                                                                            <td className="px-4 py-3 text-gray-600">{new Date(item.data_registro || item.date).toLocaleDateString()}</td>
-                                                                            <td className="px-4 py-3 font-bold text-red-600">-{item.quantity || item.quantidade}</td>
-                                                                            <td className="px-4 py-3 text-xs">{item.cause || item.causa || 'Não inf.'}</td>
-                                                                        </tr>
-                                                                    ))}
+                                                                    {loteHistory.mortality.map((item, i) => {
+                                                                        const mortKey = `mort-${item.id || i}-${item.data_registro || item.date}`;
+                                                                        return (
+                                                                            <tr key={mortKey} className="hover:bg-red-50/20 transition-colors">
+                                                                                <td className="px-4 py-3 text-gray-600">
+                                                                                    <span>{new Date(item.data_registro || item.date).toLocaleDateString()}</span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3 font-bold text-red-600">
+                                                                                    <span>-</span><span>{item.quantity || item.quantidade}</span>
+                                                                                </td>
+                                                                                <td className="px-4 py-3 text-xs">
+                                                                                    <span>{item.cause || item.causa || 'Não inf.'}</span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
                                                                 </tbody>
                                                             </table>
                                                         )}

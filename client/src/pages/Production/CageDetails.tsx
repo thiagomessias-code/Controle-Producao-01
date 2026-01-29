@@ -427,12 +427,14 @@ export default function CageDetails() {
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <p className={`font-bold text-sm ${selectedBatchId === batch.id ? 'text-blue-700' : 'text-gray-800'}`}>
-                                                    {batch.name}
+                                                    <span>{batch.name}</span>
                                                 </p>
-                                                <p className="text-[10px] text-muted-foreground">ID: {batch.id.slice(0, 8)} • {formatDate(batch.birthDate)}</p>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    <span>ID: </span><span>{batch.id.slice(0, 8)}</span><span> • </span><span>{formatDate(batch.birthDate)}</span>
+                                                </p>
                                             </div>
                                             <span className="text-xs font-black text-gray-700 bg-white px-2 py-0.5 rounded-full border border-gray-100 shadow-sm">
-                                                {batch.quantity} aves
+                                                <span>{batch.quantity}</span> <span>aves</span>
                                             </span>
                                         </div>
                                     </div>
@@ -477,20 +479,32 @@ export default function CageDetails() {
                 </CardHeader>
                 <CardContent className="pt-4">
                     <div className="space-y-4">
-                        {activeGroup?.history?.slice().reverse().map((event: any, index: number) => (
-                            <div key={index} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
-                                <div>
-                                    <p className="font-semibold text-sm">{event.event}</p>
-                                    <p className="text-[10px] text-muted-foreground">{formatDateTime(event.date)}</p>
-                                    {event.details && <p className="text-[11px] text-gray-600 mt-1 italic">{event.details}</p>}
+                        {(activeGroup?.history || []).slice().reverse().map((event: any, index: number) => {
+                            const eventKey = `${event.date}-${event.event}-${event.quantity}-${index}`;
+                            return (
+                                <div key={eventKey} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
+                                    <div>
+                                        <p className="font-semibold text-sm">
+                                            <span>{event.event}</span>
+                                        </p>
+                                        <p className="text-[10px] text-muted-foreground">
+                                            <span>{formatDateTime(event.date)}</span>
+                                        </p>
+                                        {event.details && (
+                                            <p className="text-[11px] text-gray-600 mt-1 italic">
+                                                <span>{event.details}</span>
+                                            </p>
+                                        )}
+                                    </div>
+                                    {event.quantity > 0 && (
+                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg font-bold">
+                                            <span>{event.event.includes("Mortalidade") ? "-" : ""}</span>
+                                            <span>{event.quantity}</span>
+                                        </span>
+                                    )}
                                 </div>
-                                {event.quantity > 0 && (
-                                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg font-bold">
-                                        {event.event.includes("Mortalidade") ? "-" : ""}{event.quantity}
-                                    </span>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </CardContent>
             </Card>

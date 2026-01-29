@@ -420,8 +420,8 @@ export default function CageDetails() {
                                         key={batch.id}
                                         onClick={() => setSelectedBatchId(batch.id)}
                                         className={`p-3 rounded-lg border transition-all cursor-pointer ${selectedBatchId === batch.id
-                                                ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200 shadow-sm'
-                                                : 'border-gray-100 hover:border-blue-200'
+                                            ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-200 shadow-sm'
+                                            : 'border-gray-100 hover:border-blue-200'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start">
@@ -477,7 +477,7 @@ export default function CageDetails() {
                 </CardHeader>
                 <CardContent className="pt-4">
                     <div className="space-y-4">
-                        {activeGroup.history.slice().reverse().map((event: any, index: number) => (
+                        {activeGroup?.history?.slice().reverse().map((event: any, index: number) => (
                             <div key={index} className="flex justify-between items-start border-b border-gray-100 pb-2 last:border-0">
                                 <div>
                                     <p className="font-semibold text-sm">{event.event}</p>
@@ -494,7 +494,6 @@ export default function CageDetails() {
                     </div>
                 </CardContent>
             </Card>
-            )}
 
             {/* Mortality Modal */}
             {isMortalityModalOpen && (

@@ -87,27 +87,6 @@ export default function NotificationScheduler() {
           if (!isAlreadyPending) {
             console.log(`[NotificationScheduler] Triggering alert for: ${title}`);
             addPendingTask(title, actionUrl);
-
-            // SYNCHRONIZATION WITH DATABASE NOTIFICATIONS (Multi-device)
-            if (user?.id) {
-              const msg = `🕒 Tarefa Agendada: ${title}`;
-              // Use a unique check to avoid flooding if refresh happens
-              supabase.from('notificacoes')
-                .select('id')
-                .eq('usuario_id', user.id)
-                .eq('mensagem', msg)
-                .gte('created_at', today + 'T00:00:00')
-                .then(({ data }) => {
-                  if (!data || data.length === 0) {
-                    supabase.from('notificacoes').insert({
-                      usuario_id: user.id,
-                      mensagem: msg,
-                      nivel: 'warning',
-                      lida: false
-                    }).catch(e => console.error("[NotificationScheduler] DB sync fail:", e));
-                  }
-                });
-            }
           }
         };
 

@@ -38,17 +38,21 @@ export default function RegisterProduction() {
 
   // Auto-detect batch when cage is selected
 
-  // Auto-detect batch when cage is selected
-  const [detectedBatch, setDetectedBatch] = useState<any>(null);
+  // Auto-detect all active batches in the cage and sum birds
+  const [activeBatches, setActiveBatches] = useState<any[]>([]);
+  const [totalBirdsInCage, setTotalBirdsInCage] = useState(0);
 
   useEffect(() => {
     if (formData.cageId) {
-      const batch = batches?.find((b: any) =>
+      const active = batches?.filter((b: any) =>
         b.cageId === formData.cageId && b.status === 'active'
-      );
-      setDetectedBatch(batch || null);
+      ) || [];
+      setActiveBatches(active);
+      const total = active.reduce((acc, b) => acc + (b.quantidade || 0), 0);
+      setTotalBirdsInCage(total);
     } else {
-      setDetectedBatch(null);
+      setActiveBatches([]);
+      setTotalBirdsInCage(0);
     }
   }, [formData.cageId, batches]);
 
@@ -107,7 +111,7 @@ export default function RegisterProduction() {
       return;
     }
 
-    if (!detectedBatch) {
+    if (activeBatches.length === 0) {
       setError("Nenhum lote ativo encontrado nesta gaiola");
       return;
     }
@@ -115,8 +119,8 @@ export default function RegisterProduction() {
     try {
       const qty = parseInt(formData.quantity);
 
-      if (qty > (detectedBatch?.quantity || 0)) {
-        setError(`Quantidade não pode ser superior ao número de aves no lote (${detectedBatch?.quantity || 0})`);
+      if (qty > totalBirdsInCage) {
+        setError(`Quantidade não pode ser superior ao número de aves na gaiola (${totalBirdsInCage})`);
         return;
       }
 
@@ -128,11 +132,16 @@ export default function RegisterProduction() {
         : `${formData.date}T12:00:00`;
 
       console.log("Registrando produção...");
+
+      // Use the first batch as the primary reference for traceability 
+      // (Common in systems where birds from same source are in one cage even if separate batches)
+      const primaryBatchId = activeBatches[0].id;
+
       // Create production record
       await create({
         groupId: formData.groupId,
         cageId: formData.cageId,
-        batchId: detectedBatch.id, // Traceability update
+        batchId: primaryBatchId, // Traceability update
         date: finalDate,
         eggType: formData.eggType,
         quantity: qty,
@@ -155,7 +164,7 @@ export default function RegisterProduction() {
             quantity: qty,
             origin: {
               groupId: formData.groupId,
-              batchId: detectedBatch.id,
+              batchId: primaryBatchId,
               cageId: formData.cageId,
               date: finalDate
             },

@@ -112,40 +112,47 @@ export const AdminReports: React.FC = () => {
                     if (clonedContent) {
                         clonedContent.style.padding = '20px';
 
-                        // Inject safe styles to kill oklch variables at the root level
-                        // This prevents html2canvas from failing when it parses CSS variables in :root
-                        const styleTag = clonedDoc.createElement('style');
-                        styleTag.innerHTML = `
-                            :root {
-                                --background: 255 255 255 !important;
-                                --foreground: 0 0 0 !important;
-                                --primary: 0 0 0 !important;
-                                --secondary: 240 240 240 !important;
-                                --muted: 240 240 240 !important;
-                                --accent: 240 240 240 !important;
-                                --border: 220 220 220 !important;
+                        // 1. Sanitize all <style> tags to prevent parser crash
+                        // html2canvas parses these and will fail on any oklch(...) 
+                        const styleTags = clonedDoc.getElementsByTagName('style');
+                        for (let i = 0; i < styleTags.length; i++) {
+                            const tag = styleTags[i];
+                            if (tag.textContent?.includes('oklch')) {
+                                // Replace oklch definitions with safe fallbacks
+                                tag.textContent = tag.textContent.replace(/oklch\([^)]+\)/g, '#888888');
                             }
-                        `;
-                        clonedDoc.head.appendChild(styleTag);
+                        }
+
+                        // 2. Native color conversion helper using the browser engine
+                        const convertToRgb = (colorStr: string) => {
+                            if (!colorStr.includes('oklch')) return colorStr;
+                            try {
+                                const canvas = clonedDoc.createElement('canvas');
+                                canvas.width = 1; canvas.height = 1;
+                                const ctx = canvas.getContext('2d');
+                                if (!ctx) return '#888888';
+                                ctx.fillStyle = colorStr;
+                                ctx.fillRect(0, 0, 1, 1);
+                                const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+                                return `rgb(${r}, ${g}, ${b})`;
+                            } catch (e) { return '#888888'; }
+                        };
 
                         const noPrintInClone = clonedDoc.querySelectorAll('.no-print');
                         noPrintInClone.forEach(el => (el as HTMLElement).style.display = 'none');
 
-                        // Recursive function to replace oklch in styles
+                        // 3. Recursive function to replace computed oklch in elements
                         const allElements = clonedDoc.querySelectorAll('*');
                         allElements.forEach((el) => {
                             const element = el as HTMLElement;
                             const style = window.getComputedStyle(element);
 
-                            const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
+                            const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke', 'boxShadow'];
                             colorProps.forEach(prop => {
                                 try {
                                     const value = (style as any)[prop];
                                     if (value && typeof value === 'string' && value.includes('oklch')) {
-                                        let fallback = '#000000';
-                                        if (prop === 'backgroundColor') fallback = '#ffffff';
-                                        if (prop === 'borderColor') fallback = '#e5e7eb';
-                                        element.style.setProperty(prop, fallback, 'important');
+                                        element.style.setProperty(prop, convertToRgb(value), 'important');
                                     }
                                 } catch (e) { }
                             });

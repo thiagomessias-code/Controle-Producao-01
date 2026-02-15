@@ -242,279 +242,271 @@ export const AdminReports: React.FC = () => {
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6 animate-pulse">Cruzando Dados da Granja...</p>
                     </div>
                 ) : report ? (
-                    {/* Period Filter Buttons - Now together with stats */ }
-                    < div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-fit mb-4">
-                {[
-                    { id: 'today', label: 'Hoje' },
-                    { id: 'week', label: 'Semana' },
-                    { id: 'month', label: 'Mês' },
-                    { id: 'all', label: 'Total' }
-                ].map(f => (
-                    <button
-                        key={f.id}
-                        onClick={() => setFilterType(f.id as any)}
-                        className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === f.id
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-100'
-                            : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                    >
-                        {f.label}
-                    </button>
-                ))}
+                    <div className="space-y-8 pb-10">
+                        {/* Period Filter Buttons - Now together with stats */}
+                        <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-fit mb-4">
+                            {[
+                                { id: 'today', label: 'Hoje' },
+                                { id: 'week', label: 'Semana' },
+                                { id: 'month', label: 'Mês' },
+                                { id: 'all', label: 'Total' }
+                            ].map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setFilterType(f.id as any)}
+                                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === f.id
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-100'
+                                        : 'text-gray-400 hover:text-gray-600'
+                                        }`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Premium Quick Stats Bar */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
+                            <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
+                                <div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Receita {filterType === 'all' ? 'Total' : filterType === 'week' ? 'Semanal' : filterType === 'month' ? 'Mensal' : 'Hoje'}</span>
+                                    <p className="text-2xl font-black text-gray-900">R$ {report.financial?.revenue?.toLocaleString('pt-BR') || '0,00'}</p>
+                                </div>
+                                <div className="bg-green-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
+                                    <Wallet className="w-6 h-6 text-green-600" />
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
+                                <div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Taxa de Eclosão</span>
+                                    <p className="text-2xl font-black text-gray-900">
+                                        {report.genetics?.fertile_eggs > 0
+                                            ? ((report.genetics.born_chicks / report.genetics.fertile_eggs) * 100).toFixed(1)
+                                            : '0'}%
+                                    </p>
+                                </div>
+                                <div className="bg-blue-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
+                                    <Target className="w-6 h-6 text-blue-600" />
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
+                                <div>
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Lucro Estimado</span>
+                                    <p className="text-2xl font-black text-gray-900">R$ {report.financial?.balance?.toLocaleString('pt-BR') || '0,00'}</p>
+                                </div>
+                                <div className="bg-indigo-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
+                                    <TrendingUp className="w-6 h-6 text-indigo-600" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <ReportsStrategy
+                            insights={report.insights || []}
+                            alerts={report.alertas || []}
+                            onAction={handleStrategyAction}
+                        />
+
+                        <ReportsInsights insights={report.insights || []} alerts={report.alertas || []} />
+
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 px-2">
+                                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Visualização Visual</h3>
+                            </div>
+                            <ReportsCharts charts={report.graficos} onItemClick={handleItemClick} />
+                        </div>
+
+                        <div className="pt-6">
+                            <ReportsTable charts={report.graficos} onItemClick={handleItemClick} />
+                        </div>
+
+                        <div className="pt-10 border-t border-gray-50 no-print">
+                            <div className="flex items-center gap-2 px-2 mb-4">
+                                <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Assistente de Gestão</h3>
+                            </div>
+                            <ReportsChat />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center py-32 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200 no-print">
+                        <div className="bg-white p-8 rounded-[32px] shadow-sm mb-8 animate-float">
+                            <Sparkles className="w-16 h-16 text-blue-500" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2">IA pronta para análise</h3>
+                        <p className="text-gray-400 mb-10 text-center max-w-sm font-medium">Clique em 'Nova Análise' para processar os dados de produção e finanças da última semana.</p>
+                    </div>
+                )}
             </div>
 
-            {/* Premium Quick Stats Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
-                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
-                    <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Receita {filterType === 'all' ? 'Total' : filterType === 'week' ? 'Semanal' : filterType === 'month' ? 'Mensal' : 'Hoje'}</span>
-                        <p className="text-2xl font-black text-gray-900">R$ {report.financial?.revenue?.toLocaleString('pt-BR') || '0,00'}</p>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
-                        <Wallet className="w-6 h-6 text-green-600" />
-                    </div>
-                </div>
+            {/* Drill-down Modal v7.0 */}
+            <Modal
+                isOpen={detailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
+                title={`Evolução Detalhada: ${selectedDetail.name}`}
+                size="lg"
+            >
+                <div className="space-y-6">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                        Tendência de Produção e Mortalidade (30 dias)
+                    </p>
 
-                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
-                    <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Taxa de Eclosão</span>
-                        <p className="text-2xl font-black text-gray-900">
-                            {report.genetics?.fertile_eggs > 0
-                                ? ((report.genetics.born_chicks / report.genetics.fertile_eggs) * 100).toFixed(1)
-                                : '0'}%
+                    {detailLoading ? (
+                        <div className="h-64 flex items-center justify-center">
+                            <div className="w-8 h-8 border-4 border-gray-100 border-t-blue-600 rounded-full animate-spin"></div>
+                        </div>
+                    ) : detailData.length > 0 ? (
+                        <div className="h-80 w-full mt-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={detailData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="name"
+                                        stroke="#94a3b8"
+                                        fontSize={10}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickFormatter={(val) => format(new Date(val), 'dd/MM')}
+                                    />
+                                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                                    <ChartTooltip
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        name="Produção"
+                                        dataKey="produção"
+                                        stroke="#2563eb"
+                                        strokeWidth={3}
+                                        dot={{ fill: '#2563eb', r: 4 }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        name="Mortalidade"
+                                        dataKey="mortalidade"
+                                        stroke="#ef4444"
+                                        strokeWidth={3}
+                                        dot={{ fill: '#ef4444', r: 4 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    ) : (
+                        <div className="h-64 flex flex-col items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 font-bold text-sm">
+                            Nenhum dado histórico encontrado para este período.
+                        </div>
+                    )}
+
+                    <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                        <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-1 italic">Dica da IA v7.0</p>
+                        <p className="text-xs text-blue-700 font-medium leading-relaxed">
+                            O cruzamento de dados de produção e mortalidade ajuda a identificar variações repentinas que podem indicar problemas preventivos de saúde no lote.
                         </p>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
-                        <Target className="w-6 h-6 text-blue-600" />
-                    </div>
+                </div>
+            </Modal>
+
+            {/* Hidden printable report version */}
+            <div id="printable-report" style={{ display: 'none', position: 'absolute', left: '-9999px', width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'sans-serif' }}>
+                <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #eeeeee', paddingBottom: '20px' }}>
+                    <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Relatório de Gestão - Codornas do Sertão</h1>
+                    <p style={{ fontSize: '14px', color: '#666666', margin: '0' }}>Data: {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                    {selectedAviaryId && <p style={{ fontSize: '14px', color: '#666666', margin: '5px 0 0 0' }}>Aviário: {aviaries.find(a => a.id === selectedAviaryId)?.name || selectedAviaryId}</p>}
                 </div>
 
-                <div className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex items-center justify-between group hover:shadow-xl hover:shadow-blue-50 transition-all duration-500">
+                {report && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '30px' }}>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Produção</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.graficos?.find(g => g.title.includes('Produção'))?.data?.reduce((acc: number, d: any) => acc + (d.value || 0), 0) || 0}</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Mortalidade</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.graficos?.find(g => g.title.includes('Mortalidade'))?.data?.reduce((acc: number, d: any) => acc + (d.value || 0), 0) || 0}</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Diferença</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.genetics?.fertile_eggs || 0}</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Receita ({filterType})</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>R$ {report.financial?.revenue?.toLocaleString('pt-BR') || '0,00'}</p>
+                        </div>
+                    </div>
+                )}
+
+                {report?.insights && report.insights.length > 0 && (
+                    <div style={{ marginBottom: '30px' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Análise da IA (Insights)</h2>
+                        <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                            {report.insights.map((insight: string, i: number) => {
+                                // If it's a JSON string, try to extract the main text or just show as is if not possible
+                                let displayText = insight;
+                                try {
+                                    if (insight.startsWith('{') || insight.startsWith('[')) {
+                                        const parsed = JSON.parse(insight);
+                                        displayText = typeof parsed === 'string' ? parsed : (parsed.diagnostico || insight);
+                                    }
+                                } catch (e) { }
+
+                                return (
+                                    <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5' }}>{displayText}</li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                )}
+
+                {report?.alertas && report.alertas.length > 0 && (
+                    <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fff7ed', borderRadius: '15px', border: '1px solid #ffedd5' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#ea580c' }}>Alertas Críticos</h2>
+                        <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                            {report.alertas.map((alerta: any, i: number) => (
+                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5', color: '#9a3412', fontWeight: 'bold' }}>
+                                    {typeof alerta === 'object' ? (alerta.mensagem || JSON.stringify(alerta)) : alerta}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {report?.graficos && report.graficos.length > 0 && (
                     <div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Lucro Estimado</span>
-                        <p className="text-2xl font-black text-gray-900">R$ {report.financial?.balance?.toLocaleString('pt-BR') || '0,00'}</p>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Detalhamento por Grupo</h2>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                    <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>GRUPO</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>PRODUÇÃO</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>TAXA</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>MORTOS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {report.graficos.map((chart: any) =>
+                                    (chart.data || []).map((item: any, idx: number) => (
+                                        <tr key={`${chart.id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                            <td style={{ padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>
+                                                {idx === 0 ? chart.title : ''} {item.name}
+                                            </td>
+                                            <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.value || 0}</td>
+                                            <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.percentual || 0}%</td>
+                                            <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: item.alert ? '#ef4444' : '#000000' }}>
+                                                {item.alert ? 'ALERTA' : '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                    <div className="bg-indigo-50 p-4 rounded-2xl group-hover:scale-110 transition-transform duration-500">
-                        <TrendingUp className="w-6 h-6 text-indigo-600" />
-                    </div>
+                )}
+
+                <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #eeeeee', textAlign: 'center', fontSize: '10px', color: '#999999' }}>
+                    Documento gerado automaticamente pelo sistema de gestão Codornas do Sertão.
                 </div>
             </div>
-
-            <ReportsStrategy
-                insights={report.insights || []}
-                alerts={report.alertas || []}
-                onAction={handleStrategyAction}
-            />
-
-            <ReportsInsights insights={report.insights || []} alerts={report.alertas || []} />
-
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 px-2">
-                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Visualização Visual</h3>
-                </div>
-                <ReportsCharts charts={report.graficos} onItemClick={handleItemClick} />
-            </div>
-
-            <div className="pt-6">
-                <ReportsTable charts={report.graficos} onItemClick={handleItemClick} />
-            </div>
-
-            <div className="pt-10 border-t border-gray-50 no-print">
-                <div className="flex items-center gap-2 px-2 mb-4">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Assistente de Gestão</h3>
-                </div>
-                <ReportsChat />
-            </div>
         </div>
-    ) : (
-        <div className="flex flex-col items-center justify-center py-32 bg-gray-50 rounded-[40px] border-2 border-dashed border-gray-200 no-print">
-            <div className="bg-white p-8 rounded-[32px] shadow-sm mb-8 animate-float">
-                <Sparkles className="w-16 h-16 text-blue-500" />
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-2">IA pronta para análise</h3>
-            <p className="text-gray-400 mb-10 text-center max-w-sm font-medium">Clique em 'Nova Análise' para processar os dados de produção e finanças da última semana.</p>
-        </div>
-    )
-}
-            </div >
-
-    {/* Drill-down Modal v7.0 */ }
-    < Modal
-isOpen = { detailModalOpen }
-onClose = {() => setDetailModalOpen(false)}
-title = {`Evolução Detalhada: ${selectedDetail.name}`}
-size = "lg"
-    >
-    <div className="space-y-6">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Tendência de Produção e Mortalidade (30 dias)
-        </p>
-
-        {detailLoading ? (
-            <div className="h-64 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-gray-100 border-t-blue-600 rounded-full animate-spin"></div>
-            </div>
-        ) : detailData.length > 0 ? (
-            <div className="h-80 w-full mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={detailData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis
-                            dataKey="name"
-                            stroke="#94a3b8"
-                            fontSize={10}
-                            tickLine={false}
-                            axisLine={false}
-                            tickFormatter={(val) => format(new Date(val), 'dd/MM')}
-                        />
-                        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                        <ChartTooltip
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Line
-                            type="monotone"
-                            name="Produção"
-                            dataKey="produção"
-                            stroke="#2563eb"
-                            strokeWidth={3}
-                            dot={{ fill: '#2563eb', r: 4 }}
-                        />
-                        <Line
-                            type="monotone"
-                            name="Mortalidade"
-                            dataKey="mortalidade"
-                            stroke="#ef4444"
-                            strokeWidth={3}
-                            dot={{ fill: '#ef4444', r: 4 }}
-                        />
-                    </LineChart>
-                </ResponsiveContainer>
-            </div>
-        ) : (
-            <div className="h-64 flex flex-col items-center justify-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 font-bold text-sm">
-                Nenhum dado histórico encontrado para este período.
-            </div>
-        )}
-
-        <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
-            <p className="text-[10px] text-blue-600 font-black uppercase tracking-widest mb-1 italic">Dica da IA v7.0</p>
-            <p className="text-xs text-blue-700 font-medium leading-relaxed">
-                O cruzamento de dados de produção e mortalidade ajuda a identificar variações repentinas que podem indicar problemas preventivos de saúde no lote.
-            </p>
-        </div>
-    </div>
-            </Modal >
-
-    {/* Hidden printable report version */ }
-    < div id = "printable-report" style = {{ display: 'none', position: 'absolute', left: '-9999px', width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'sans-serif' }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #eeeeee', paddingBottom: '20px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Relatório de Gestão - Codornas do Sertão</h1>
-            <p style={{ fontSize: '14px', color: '#666666', margin: '0' }}>Data: {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-            {selectedAviaryId && <p style={{ fontSize: '14px', color: '#666666', margin: '5px 0 0 0' }}>Aviário: {aviaries.find(a => a.id === selectedAviaryId)?.name || selectedAviaryId}</p>}
-        </div>
-
-{
-    report && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '30px' }}>
-            <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Produção</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.graficos?.find(g => g.title.includes('Produção'))?.data?.reduce((acc: number, d: any) => acc + (d.value || 0), 0) || 0}</p>
-            </div>
-            <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Mortalidade</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.graficos?.find(g => g.title.includes('Mortalidade'))?.data?.reduce((acc: number, d: any) => acc + (d.value || 0), 0) || 0}</p>
-            </div>
-            <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Diferença</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.genetics?.fertile_eggs || 0}</p>
-            </div>
-            <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
-                <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Receita ({filterType})</p>
-                <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>R$ {report.financial?.revenue?.toLocaleString('pt-BR') || '0,00'}</p>
-            </div>
-        </div>
-    )
-}
-
-{
-    report?.insights && report.insights.length > 0 && (
-        <div style={{ marginBottom: '30px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Análise da IA (Insights)</h2>
-            <ul style={{ paddingLeft: '20px', margin: '0' }}>
-                {report.insights.map((insight: string, i: number) => {
-                    // If it's a JSON string, try to extract the main text or just show as is if not possible
-                    let displayText = insight;
-                    try {
-                        if (insight.startsWith('{') || insight.startsWith('[')) {
-                            const parsed = JSON.parse(insight);
-                            displayText = typeof parsed === 'string' ? parsed : (parsed.diagnostico || insight);
-                        }
-                    } catch (e) { }
-
-                    return (
-                        <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5' }}>{displayText}</li>
-                    );
-                })}
-            </ul>
-        </div>
-    )
-}
-
-{
-    report?.alertas && report.alertas.length > 0 && (
-        <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fff7ed', borderRadius: '15px', border: '1px solid #ffedd5' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#ea580c' }}>Alertas Críticos</h2>
-            <ul style={{ paddingLeft: '20px', margin: '0' }}>
-                {report.alertas.map((alerta: any, i: number) => (
-                    <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5', color: '#9a3412', fontWeight: 'bold' }}>
-                        {typeof alerta === 'object' ? (alerta.mensagem || JSON.stringify(alerta)) : alerta}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    )
-}
-
-{
-    report?.graficos && report.graficos.length > 0 && (
-        <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Detalhamento por Grupo</h2>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                <thead>
-                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                        <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>GRUPO</th>
-                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>PRODUÇÃO</th>
-                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>TAXA</th>
-                        <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>MORTOS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {report.graficos.map((chart: any) =>
-                        (chart.data || []).map((item: any, idx: number) => (
-                            <tr key={`${chart.id}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>
-                                    {idx === 0 ? chart.title : ''} {item.name}
-                                </td>
-                                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.value || 0}</td>
-                                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.percentual || 0}%</td>
-                                <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: item.alert ? '#ef4444' : '#000000' }}>
-                                    {item.alert ? 'ALERTA' : '-'}
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
-        </div>
-    )
-}
-
-<div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #eeeeee', textAlign: 'center', fontSize: '10px', color: '#999999' }}>
-    Documento gerado automaticamente pelo sistema de gestão Codornas do Sertão.
-</div>
-            </div >
-        </div >
     );
 };

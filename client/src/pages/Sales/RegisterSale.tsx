@@ -6,13 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useSales } from "@/hooks/useSales";
 import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
-// PRODUCT_TRANSFORMATION_RULES removed - now using 'ficha_tecnica' defined in DB per product.
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
 import { formatCurrency } from "@/utils/format";
 import { supabase } from "@/api/supabaseClient";
 import { aviariesApi } from "@/api/aviaries";
 import { toast } from "sonner";
+import {
+  ShoppingBag,
+  ChevronLeft,
+  CheckCircle2,
+  Package,
+  User,
+  CreditCard,
+  Calendar,
+  FileText,
+  ArrowRight,
+  TrendingDown,
+  Info,
+  Layers,
+  Archive
+} from "lucide-react";
 
 interface ProductVariation {
   id: string;
@@ -36,7 +50,7 @@ interface Product {
 export default function RegisterSale() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { groups, update: updateGroup } = useGroups();
+  const { groups } = useGroups();
   const { create, isCreating, sales, isLoading: isLoadingSales } = useSales();
   const { inventory, processSale } = useWarehouse();
 
@@ -53,7 +67,7 @@ export default function RegisterSale() {
     date: new Date().toISOString().split("T")[0],
     quantity: "1",
     buyer: "",
-    paymentMethod: "cash" as "cash" | "check" | "transfer" | "other",
+    paymentMethod: "cash" as "cash" | "payment_app" | "transfer" | "other",
     notes: "",
   });
   const [error, setError] = useState("");
@@ -72,7 +86,6 @@ export default function RegisterSale() {
         .order('nome');
 
       if (error) throw error;
-      // Filter out products with no active variations or inactive products
       const validProducts = (data || []).map(p => ({
         ...p,
         product_variations: (p.product_variations || []).filter((v: ProductVariation) => v.active !== false)
@@ -86,85 +99,55 @@ export default function RegisterSale() {
     }
   };
 
-  // Helper: Get Available Stock for Eggs/Meat
-  // Helper: Get Available Stock for Eggs/Meat/Animals
   const getAvailableStock = (name: string, typeHint?: string): number => {
     let target = name.toLowerCase();
     const product = products.find(p => p.nome.toLowerCase() === target);
 
-    // If product doesn't control stock, stock depends on raw materials in technical sheet
     if (product && product.controla_estoque === false && product.ficha_tecnica) {
       if (product.ficha_tecnica.length === 0) return 0;
-
       const ingredientAvailabilities = product.ficha_tecnica.map(ing => {
         const availableIng = getAvailableStock(ing.raw_material_name, ing.stock_type);
         return Math.floor(availableIng / ing.quantity);
       });
-
       return Math.min(...ingredientAvailabilities);
     }
 
-    // Default: Warehouse Inventory (Eggs, Meat, Feed, Meds, etc.)
     return inventory
       .filter(i => {
         if (i.status !== "in_stock") return false;
         if (typeHint && i.type !== typeHint) return false;
-
         const invName = (i.subtype || "").toLowerCase();
-
-        // Specific mapping for Meat/Slaughter
         if ((target.includes('abatida') || target.includes('abate')) &&
           (invName.includes('abatida') || invName.includes('abate') || i.type === 'meat')) {
           return true;
         }
-
-        // Improved normalization for singular/plural comparison
         const normalize = (str: string) => str.replace(/s\b/g, "").replace(/\s+/g, " ").trim();
         const targetNorm = normalize(target);
         const invNorm = normalize(invName);
-
-        // General fuzzy match (bidirectional)
         return invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
       })
       .reduce((acc, i) => acc + i.quantity, 0);
   };
 
-  // Helper: Get FIFO Suggestions (Oldest Batches First)
   const getFifoSuggestions = (productName: string) => {
     const target = productName.toLowerCase();
     const product = products.find(p => p.nome.toLowerCase() === target);
 
     if (product && product.controla_estoque === false && product.ficha_tecnica) {
-      // FIFO for derivatives? We show FIFO for the first ingredient as a hint
       if (product.ficha_tecnica.length > 0) {
         return getFifoSuggestions(product.ficha_tecnica[0].raw_material_name);
       }
       return [];
     }
 
-    const targetNorm = target.replace(/s$/, ""); // Normalize
-
     return inventory
       .filter(i => {
         if (i.status !== "in_stock") return false;
         const invName = i.subtype.toLowerCase();
-        if (target.includes('pinto') && invName.includes('pinto')) return true;
         return invName.includes(target) || target.includes(invName);
       })
       .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime())
-      .slice(0, 3); // Get top 3 oldest
-  };
-
-  // Helper: Get Available Chicks (>20 days)
-  const getAvailableChicks = () => {
-    const today = new Date();
-    return groups.filter(g => {
-      if (g.status !== "active" || g.phase !== "crescimento") return false;
-      if (!g.birthDate) return false;
-      const birthDate = new Date(g.birthDate);
-      const ageInDays = Math.floor((today.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24));
-      return ageInDays >= 20;
-    });
+      .slice(0, 3);
   };
 
   const calculateTotal = () => {
@@ -174,7 +157,6 @@ export default function RegisterSale() {
 
   const handleStep1 = (prod: Product) => {
     setSelectedProduct(prod);
-    // Auto-select first variation if only one
     if (prod.product_variations && prod.product_variations.length === 1) {
       setSelectedVariation(prod.product_variations[0]);
     } else {
@@ -198,14 +180,7 @@ export default function RegisterSale() {
       return;
     }
 
-    // Strict Stock Validation
-    const stockName = selectedProduct.nome; // Use full name
-    const available = getAvailableStock(stockName);
-
-    // Only block if we ACTUALLY found stock (available > 0) OR if we are sure it should exist.
-    // But user requested Strict Mode: "o fluxo da venda não pode seguir se nao houver em estoque"
-    // So if available is 0, we BLOCK.
-
+    const available = getAvailableStock(selectedProduct.nome);
     if (available < qty) {
       const msg = selectedProduct.controla_estoque === false
         ? `Insumos insuficientes para produzir! Disponível: ${available}. Solicitado: ${qty}.`
@@ -222,10 +197,8 @@ export default function RegisterSale() {
 
     try {
       const qty = parseInt(formData.quantity);
-
-      // Stock Deduction
       const isEgg = selectedProduct.tipo === "ovo" || selectedProduct.nome.toLowerCase().includes('ovo');
-      const isMeat = selectedProduct.tipo === "carne" || selectedProduct.nome.toLowerCase().includes('abatida') || selectedProduct.nome.toLowerCase().includes('abate');
+      const isMeat = selectedProduct.tipo === "carne" || selectedProduct.nome.toLowerCase().includes('abatida');
       const isLive = selectedProduct.tipo === "ave_viva";
 
       let originTag = "";
@@ -233,8 +206,6 @@ export default function RegisterSale() {
 
       if (isEgg || isMeat || isLive || isDerivative) {
         let stockSubtype = selectedProduct.nome;
-        // For derivatives, the internal calls will use the correct types from the technical sheet.
-        // We just need a valid initial type to pass to the parent processSale call.
         let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : (isMeat ? 'meat' : 'egg'));
 
         const origins = await processSale(
@@ -245,7 +216,6 @@ export default function RegisterSale() {
           selectedProduct.ficha_tecnica
         );
 
-        // Extract Aviary Names from Origins
         const aviaryIds = new Set(origins.map(o => {
           const group = groups.find(g => String(g.id) === String(o.groupId));
           return group?.aviaryId;
@@ -260,31 +230,21 @@ export default function RegisterSale() {
         }
       }
 
-      // Check if selected date is today (locally)
       const localToday = getLocalISODate();
+      const finalDate = formData.date === localToday ? new Date().toISOString() : `${formData.date}T12:00:00`;
 
-      const finalDate = formData.date === localToday
-        ? new Date().toISOString()
-        : `${formData.date}T12:00:00`; // Use noon for historical dates to avoid TZ shifts
-
-      // Create Sale Record
-      try {
-        await create({
-          groupId: formData.groupId || "warehouse",
-          date: finalDate,
-          quantity: qty,
-          unitPrice: selectedVariation.price,
-          buyer: formData.buyer,
-          productType: selectedProduct.nome,
-          product_variation_id: selectedVariation.id,
-          userId: user?.id,
-          paymentMethod: formData.paymentMethod,
-          notes: `Variação: ${selectedVariation.name}. ${formData.notes}${originTag}`,
-        });
-      } catch (createErr: any) {
-        console.error("Erro na criação do registro de venda:", createErr);
-        throw new Error(`Estoque foi abatido, mas o registro da venda falhou: ${createErr.message || 'Erro desconhecido'}`);
-      }
+      await create({
+        groupId: formData.groupId || "warehouse",
+        date: finalDate,
+        quantity: qty,
+        unitPrice: selectedVariation.price,
+        buyer: formData.buyer,
+        productType: selectedProduct.nome,
+        product_variation_id: selectedVariation.id,
+        userId: user?.id,
+        paymentMethod: formData.paymentMethod,
+        notes: `Variação: ${selectedVariation.name}. ${formData.notes}${originTag}`,
+      });
 
       setLocation("/sales");
       toast.success("Venda registrada com sucesso!");
@@ -294,272 +254,335 @@ export default function RegisterSale() {
     }
   };
 
-  if (loadingProducts) return <p className="p-8 text-center">Carregando produtos...</p>;
+  if (loadingProducts) return (
+    <div className="flex flex-col items-center justify-center p-20 space-y-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-500 font-bold animate-pulse uppercase tracking-widest text-xs">Carregando Estoque...</p>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => window.history.back()}>
-            ⬅️ Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Registrar Venda 💰</h1>
-            <p className="text-muted-foreground mt-1">
-              Lance novas vendas de produtos e aves.
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" onClick={() => setLocation("/sales")}>
-          Ver Histórico
-        </Button>
-      </div>
+    <div className="max-w-5xl mx-auto pb-20 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Premium Header */}
+      <div className="relative overflow-hidden bg-white p-8 rounded-[2rem] shadow-xl shadow-blue-50 border border-blue-50/50">
+        <div className="absolute top-0 right-0 -m-8 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50"></div>
+        <div className="absolute bottom-0 left-0 -m-8 w-48 h-48 bg-indigo-50 rounded-full blur-2xl opacity-40"></div>
 
-      {/* STEP 1: SELECT PRODUCT */}
-      {step === 1 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-          {products.map(prod => (
-            <Card
-              key={prod.id}
-              className="cursor-pointer hover:shadow-xl transition-all hover:-translate-y-1 block"
-              onClick={() => handleStep1(prod)}
-            >
-              <CardContent className="p-8 text-center space-y-4">
-                <span className="text-4xl text-blue-500">📦</span>
-                <h3 className="text-xl font-bold text-foreground capitalize">{prod.nome}</h3>
-                <p className="text-sm text-gray-400">{prod.product_variations?.length} opções</p>
-              </CardContent>
-            </Card>
-          ))}
-          {products.length === 0 && <p className="col-span-3 text-center text-gray-500">Nenhum produto cadastrado.</p>}
-        </div>
-      )}
-
-      {/* STEP 2: DETAILS */}
-      {step === 2 && selectedProduct && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Venda de {selectedProduct.nome}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleStep2} className="space-y-6">
-              {error && (
-                <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <label className="block text-sm font-medium text-foreground">Escolha a Opção</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedProduct.product_variations?.map(v => (
-                    <div
-                      key={v.id}
-                      className={`border rounded-lg p-4 cursor-pointer transition-colors flex justify-between items-center ${selectedVariation?.id === v.id ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : 'hover:bg-gray-50'}`}
-                      onClick={() => setSelectedVariation(v as ProductVariation)}
-                    >
-                      <span className="font-medium">{v.name}</span>
-                      <span className="font-bold text-blue-700">{formatCurrency(v.price)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Stock Indicator - Universal */}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  label="Quantidade"
-                  type="number"
-                  min="1"
-                  value={formData.quantity}
-                  onChange={e => setFormData({ ...formData, quantity: e.target.value })}
-                  placeholder="0"
-                />
-
-                {(() => {
-                  return (
-                    <div className={`text-sm mt-1 p-2 rounded ${getAvailableStock(selectedProduct.nome) > 0
-                      ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                      : 'bg-red-50 text-red-700 border border-red-100'
-                      }`}>
-                      <span className="font-bold">
-                        {selectedProduct.controla_estoque === false ? 'Pode Produzir: ' : 'Em Estoque: '}
-                      </span>
-                      {getAvailableStock(selectedProduct.nome)}
-                      {selectedProduct.controla_estoque === false && selectedProduct.ficha_tecnica && selectedProduct.ficha_tecnica.length > 0 && (
-                        <div className="text-[10px] font-black uppercase tracking-tighter mt-1 flex flex-col gap-1 opacity-70 border-t pt-1">
-                          <span className="font-bold">Composição (Insumos):</span>
-                          {selectedProduct.ficha_tecnica.map((ing, i) => (
-                            <div key={i} className="flex justify-between">
-                              <span>{ing.raw_material_name}:</span>
-                              <span>{ing.quantity * Number(formData.quantity || 0)} total</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* FIFO Sugestion */}
-                {getAvailableStock(selectedProduct.nome) > 0 && (
-                  <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                    <p className="font-bold text-yellow-800 mb-1">💡 Sugestão de Venda (FIFO):</p>
-                    <ul className="space-y-1">
-                      {getFifoSuggestions(selectedProduct.nome).map((item, idx) => (
-                        <li key={item.id} className="text-yellow-700">
-                          {idx + 1}. {item.subtype} (Lote: {item.origin.batchId || 'N/A'}) - {new Date(item.origin.date).toLocaleDateString()}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div className="bg-gray-100 p-4 rounded flex flex-col justify-center">
-                  <span className="text-sm text-gray-500">Total Estimado</span>
-                  <span className="text-2xl font-bold text-green-700">
-                    {formatCurrency((selectedVariation?.price || 0) * parseInt(formData.quantity || '0'))}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={!selectedVariation}>Continuar →</Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* STEP 3: CONFIRMATION */}
-      {step === 3 && selectedProduct && selectedVariation && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Finalizar Venda</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {error && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-                {error}
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-6">
+            {step > 1 ? (
+              <button
+                onClick={() => setStep(step - 1)}
+                className="group p-3 bg-gray-50 hover:bg-white hover:shadow-md rounded-2xl transition-all border border-gray-100 flex items-center justify-center h-14 w-14"
+              >
+                <ChevronLeft size={24} className="text-gray-600 group-hover:-translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <div className="p-4 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[1.5rem] shadow-lg shadow-blue-200 h-14 w-14 flex items-center justify-center">
+                <ShoppingBag size={28} />
               </div>
             )}
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Produto:</span>
-                <span className="font-medium capitalize">{selectedProduct.nome} - {selectedVariation.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Quantidade:</span>
-                <span className="font-bold text-lg">{formData.quantity}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 mt-2">
-                <span className="text-muted-foreground">Total:</span>
-                <span className="font-bold text-xl text-green-700">{formatCurrency(calculateTotal())}</span>
-              </div>
+            <div>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-none">Checkout</h1>
+              <p className="text-gray-400 font-semibold mt-2 flex items-center gap-2">
+                {step === 1 ? 'Selecione o produto para a venda' : step === 2 ? 'Defina as quantidades e variações' : 'Revise e confirme a transação'}
+              </p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-2xl border border-gray-100 pr-4">
+            {[1, 2, 3].map((s) => (
+              <div key={s} className="flex items-center gap-2 line-clamp-1">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all ${step >= s ? 'bg-blue-600 text-white shadow-md shadow-blue-100 scale-110' : 'bg-white text-gray-400 border border-gray-200'}`}>
+                  {step > s ? <CheckCircle2 size={14} /> : s}
+                </div>
+                {s < 3 && <div className={`w-8 h-1 rounded-full ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`}></div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input
-                label="Comprador"
-                value={formData.buyer}
-                onChange={e => setFormData({ ...formData, buyer: e.target.value })}
-              />
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Pagamento</label>
-                <select
-                  value={formData.paymentMethod}
-                  onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as any })}
-                  className="w-full px-4 py-2 rounded-lg border-2 border-input bg-background"
-                >
-                  <option value="cash">Dinheiro</option>
-                  <option value="check">Cheque</option>
-                  <option value="transfer">Transferência</option>
-                  <option value="other">Outro</option>
-                </select>
-              </div>
-              <Input
-                label="Data"
-                type="date"
-                value={formData.date}
-                onChange={e => setFormData({ ...formData, date: e.target.value })}
-              />
-              <Input
-                label="Notas"
-                value={formData.notes}
-                onChange={e => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => setStep(2)}
-              >
-                Voltar
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                className="flex-1"
-                onClick={handleSubmit}
-                isLoading={isCreating}
-              >
-                Confirmar Venda
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-4 animate-in slide-in-from-top-2">
+          <div className="bg-red-500 text-white p-2 rounded-xl h-10 w-10 flex items-center justify-center">
+            <Info size={20} />
+          </div>
+          <div className="flex-1">
+            <p className="text-red-800 font-black text-sm uppercase tracking-wide">Erro no Processamento</p>
+            <p className="text-red-600 text-sm font-medium">{error}</p>
+          </div>
+        </div>
       )}
-      {/* Recent History Table */}
-      <Card className="mt-8 border-none shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl">Vendas Recentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 border-b">
-                <tr>
-                  <th className="p-3 font-semibold">Data</th>
-                  <th className="p-3 font-semibold">Produto</th>
-                  <th className="p-3 font-semibold text-right">Qtd</th>
-                  <th className="p-3 font-semibold text-right">Total</th>
-                  <th className="p-3 font-semibold">Comprador</th>
-                  <th className="p-3 font-semibold text-xs">Vendedor</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {isLoadingSales ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Carregando...</td></tr>
-                ) : sales.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma venda registrada recentemente.</td></tr>
-                ) : (
-                  sales.slice(0, 10).map(sale => (
-                    <tr key={sale.id} className="hover:bg-muted/30">
-                      <td className="p-3">{formatDate(sale.date)}</td>
-                      <td className="p-3 font-medium capitalize">{sale.productType}</td>
-                      <td className="p-3 text-right">{sale.quantity}</td>
-                      <td className="p-3 text-right font-medium text-green-700">
-                        {formatCurrency(sale.totalPrice || (sale.unitPrice * sale.quantity))}
-                      </td>
-                      <td className="p-3 text-xs">{sale.buyer || "-"}</td>
-                      <td className="p-3 text-xs font-medium text-blue-700">{sale.userName || "Sistema"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+
+      {/* STEP 1: PRODUCT SELECTION */}
+      {step === 1 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map(prod => {
+            const stock = getAvailableStock(prod.nome);
+            return (
+              <Card
+                key={prod.id}
+                className="group relative cursor-pointer border-none shadow-sm hover:shadow-2xl hover:shadow-blue-100 transition-all duration-500 hover:-translate-y-2 rounded-[2rem] overflow-hidden"
+                onClick={() => handleStep1(prod)}
+              >
+                <div className="absolute top-0 right-0 m-4 py-1 px-3 bg-white/80 backdrop-blur-sm rounded-full text-[10px] font-black border border-gray-100 tracking-widest text-gray-500 uppercase">
+                  {prod.tipo}
+                </div>
+                <CardContent className="p-8 space-y-6">
+                  <div className="h-16 w-16 bg-blue-50 group-hover:bg-blue-600 text-blue-600 group-hover:text-white rounded-[1.25rem] flex items-center justify-center transition-all duration-500 shadow-inner">
+                    <Package size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 group-hover:text-blue-600 transition-colors capitalize tracking-tight">{prod.nome}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`h-2 w-2 rounded-full ${stock > 0 ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                      <p className="text-sm font-bold text-gray-400 capitalize">{prod.product_variations?.length} Variações disponíveis</p>
+                    </div>
+                  </div>
+                  <div className="pt-6 border-t border-gray-50 flex justify-between items-center">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Estoque Disp.</p>
+                      <p className={`text-xl font-black tabular-nums ${stock > 0 ? 'text-gray-900' : 'text-red-400'}`}>{stock}</p>
+                    </div>
+                    <div className="h-10 w-10 bg-gray-50 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all">
+                      <ArrowRight size={20} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* STEP 2: QUANTITY & VARIATION */}
+      {step === 2 && selectedProduct && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-12 space-y-6">
+            <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 h-full w-1/3 bg-white/10 skew-x-12 translate-x-10"></div>
+                <div className="relative flex justify-between items-center">
+                  <div>
+                    <p className="text-blue-100 text-xs font-black uppercase tracking-widest">Configuração do Item</p>
+                    <h2 className="text-4xl font-black mt-2 capitalize tracking-tight">{selectedProduct.nome}</h2>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-blue-100 text-xs font-black uppercase tracking-widest">Saldo Atual</p>
+                    <p className="text-4xl font-black mt-2 tabular-nums">{getAvailableStock(selectedProduct.nome)}</p>
+                  </div>
+                </div>
+              </div>
+              <CardContent className="p-8">
+                <form onSubmit={handleStep2} className="space-y-10 group">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                        <TrendingDown size={18} />
+                      </div>
+                      <Label className="text-sm font-black text-gray-700 uppercase tracking-widest">1. Selecione a Variação de Venda</Label>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {selectedProduct.product_variations?.map(v => (
+                        <div
+                          key={v.id}
+                          className={`relative group cursor-pointer p-6 rounded-[2rem] border-2 transition-all duration-300 ${selectedVariation?.id === v.id
+                              ? 'border-blue-600 bg-blue-50/30'
+                              : 'border-gray-100 hover:border-blue-100 hover:bg-gray-50'
+                            }`}
+                          onClick={() => setSelectedVariation(v as ProductVariation)}
+                        >
+                          {selectedVariation?.id === v.id && (
+                            <div className="absolute -top-2 -right-2 bg-blue-600 text-white rounded-full p-1 shadow-lg shadow-blue-200">
+                              <CheckCircle2 size={16} />
+                            </div>
+                          )}
+                          <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{v.unit_type}</p>
+                          <h4 className="text-lg font-black text-gray-900 mt-1">{v.name}</h4>
+                          <p className="text-2xl font-black text-blue-600 mt-3 tabular-nums">{formatCurrency(v.price)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
+                          <Layers size={18} />
+                        </div>
+                        <Label className="text-sm font-black text-gray-700 uppercase tracking-widest">2. Informe a Quantidade</Label>
+                      </div>
+                      <div className="relative group">
+                        <input
+                          type="number"
+                          value={formData.quantity}
+                          onChange={e => setFormData({ ...formData, quantity: e.target.value })}
+                          className="w-full text-5xl font-black p-8 pb-10 rounded-[2rem] bg-gray-50 border-none focus:ring-4 focus:ring-blue-100 transition-all outline-none tabular-nums text-gray-900"
+                          placeholder="0"
+                        />
+                        <div className="absolute bottom-6 right-8 text-sm font-black text-gray-400 uppercase tracking-widest">Unidades / Itens</div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end space-y-6">
+                      <div className="p-8 rounded-[2rem] bg-emerald-50 border border-emerald-100/50 flex flex-col gap-2">
+                        <p className="text-emerald-600 text-xs font-black uppercase tracking-widest">Total Parcial</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-5xl font-black text-emerald-700 tabular-nums">
+                            {formatCurrency((selectedVariation?.price || 0) * parseInt(formData.quantity || '0'))}
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-[2rem] shadow-xl shadow-blue-100 group transition-all"
+                        disabled={!selectedVariation}
+                      >
+                        Próximo Passo <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </div>
-          <div className="mt-4 text-center">
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/sales")}>
-              Ver Histórico Completo →
-            </Button>
+        </div>
+      )}
+
+      {/* STEP 3: CONFIRMATION & DETAILS */}
+      {step === 3 && selectedProduct && selectedVariation && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="lg:col-span-8 space-y-6">
+            <Card className="border-none shadow-xl rounded-[2rem] bg-white">
+              <CardHeader className="p-8 pb-0">
+                <CardTitle className="text-2xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-600 text-white rounded-2xl flex items-center justify-center">
+                    <CheckCircle2 size={24} />
+                  </div>
+                  Detalhes da Transação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <User size={14} className="text-blue-500" /> Nome do Comprador
+                    </Label>
+                    <input
+                      value={formData.buyer}
+                      onChange={e => setFormData({ ...formData, buyer: e.target.value })}
+                      className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 ring-inset transition-all outline-none font-bold text-gray-800"
+                      placeholder="Quem está comprando?"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <CreditCard size={14} className="text-blue-500" /> Método de Pagamento
+                    </Label>
+                    <select
+                      value={formData.paymentMethod}
+                      onChange={e => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+                      className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 ring-inset transition-all outline-none font-bold text-gray-800 appearance-none cursor-pointer"
+                    >
+                      <option value="cash">Dinheiro</option>
+                      <option value="payment_app">Pix / App</option>
+                      <option value="transfer">Transferência Bancária</option>
+                      <option value="other">Outro</option>
+                    </select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={14} className="text-blue-500" /> Data da Venda
+                    </Label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 ring-inset transition-all outline-none font-bold text-gray-800"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <FileText size={14} className="text-blue-500" /> Observações Internas
+                    </Label>
+                    <input
+                      value={formData.notes}
+                      onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                      className="w-full h-14 px-6 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-blue-200 focus:ring-4 focus:ring-blue-50 ring-inset transition-all outline-none font-bold text-gray-800"
+                      placeholder="Opcional..."
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button
+                    onClick={handleSubmit}
+                    isLoading={isCreating}
+                    className="w-full h-20 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl rounded-[2.5rem] shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 transition-all group"
+                  >
+                    Confirmar e Finalizar Venda <CheckCircle2 size={28} className="group-hover:scale-125 transition-transform" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="border-none shadow-xl rounded-[2rem] bg-gray-900 text-white overflow-hidden sticky top-8">
+              <div className="p-8 space-y-8">
+                <div>
+                  <h3 className="text-lg font-black text-indigo-300 uppercase tracking-[0.2em]">Resumo do Pedido</h3>
+                  <div className="mt-6 flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <div className="h-12 w-12 bg-white/10 rounded-xl flex items-center justify-center font-black text-xl">1</div>
+                    <div>
+                      <h4 className="font-black text-lg capitalize">{selectedProduct.nome}</h4>
+                      <p className="text-gray-400 text-sm">{selectedVariation.name} × {formData.quantity}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-8 border-t border-white/10">
+                  <div className="flex justify-between items-center text-gray-400 font-bold uppercase tracking-widest text-xs">
+                    <span>Preço Unitário</span>
+                    <span className="text-white">{formatCurrency(selectedVariation.price)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-gray-400 font-bold uppercase tracking-widest text-xs">
+                    <span>Subtotal</span>
+                    <span className="text-white tabular-nums">{formatCurrency(calculateTotal())}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-6 border-t border-white/10 group">
+                    <span className="text-indigo-300 font-black uppercase tracking-widest text-sm group-hover:text-indigo-200 transition-colors">Total a Receber</span>
+                    <span className="text-4xl font-black text-white tabular-nums tracking-tight">
+                      {formatCurrency(calculateTotal())}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Modern Dashboard Link Section */}
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex items-center gap-4">
+          <div className="p-4 bg-gray-50 text-gray-400 rounded-2xl">
+            <Archive size={24} />
+          </div>
+          <div>
+            <h4 className="font-black text-gray-900">Histórico de Movimentações</h4>
+            <p className="text-gray-400 text-sm font-semibold">Visualize todas as vendas processadas este ano.</p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => setLocation("/sales")}
+          className="rounded-[1.25rem] h-14 px-8 border-gray-100 font-black hover:bg-gray-50 transition-all text-sm uppercase tracking-widest"
+        >
+          Acessar Relatório Completo
+        </Button>
+      </div>
     </div>
   );
 }

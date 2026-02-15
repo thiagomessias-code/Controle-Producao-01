@@ -397,6 +397,14 @@ export default function FeedUsage() {
     }
 
     try {
+      // Stock Check Validation
+      const selectedFeed = availableFeeds.find(f => f.id === formData.feedTypeId);
+      if (selectedFeed && (selectedFeed.estoque_atual || 0) < parseFloat(formData.quantity)) {
+        setError(`Estoque insuficiente! Disponível: ${selectedFeed.estoque_atual}kg`);
+        toast.error("Erro: Ração insuficiente no estoque!");
+        return;
+      }
+
       // Check if selected date is today (locally)
       const localToday = getLocalISODate();
 

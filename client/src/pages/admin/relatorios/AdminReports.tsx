@@ -79,96 +79,25 @@ export const AdminReports: React.FC = () => {
     };
 
     const handleExportPDF = async () => {
-        const element = document.getElementById('report-content');
+        const element = document.getElementById('printable-report');
         if (!element) {
             setError('Conteúdo para PDF não encontrado');
             return;
         }
 
-        setGenerating(true);
         try {
-            // Pre-process: Ensure all images are loaded and scrolling is disabled for capture
-            window.scrollTo(0, 0);
+            setGenerating(true);
+            const originalDisplay = element.style.display;
+            element.style.display = 'block';
 
-            const originalStyle = element.style.height;
-            const originalOverflow = document.body.style.overflow;
-
-            element.style.height = 'auto';
-            document.body.style.overflow = 'hidden';
-
-            // Hide PDF button and other no-print elements explicitly during capture
-            const noPrintElements = document.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => (el as HTMLElement).style.display = 'none');
-
+            // Pequeno delay para garantir renderização correta
+            await new Promise(resolve => setTimeout(resolve, 150));
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#f9fafb',
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
-                onclone: (clonedDoc) => {
-                    const clonedContent = clonedDoc.getElementById('report-content');
-                    if (clonedContent) {
-                        clonedContent.style.padding = '20px';
-
-                        // 1. Sanitize all <style> tags to prevent parser crash
-                        // html2canvas parses these and will fail on any oklch(...) 
-                        const styleTags = clonedDoc.getElementsByTagName('style');
-                        for (let i = 0; i < styleTags.length; i++) {
-                            const tag = styleTags[i];
-                            if (tag.textContent?.includes('oklch')) {
-                                // Replace oklch definitions with safe fallbacks
-                                tag.textContent = tag.textContent.replace(/oklch\([^)]+\)/g, '#888888');
-                            }
-                        }
-
-                        // 2. Native color conversion helper using the browser engine
-                        const convertToRgb = (colorStr: string) => {
-                            if (!colorStr.includes('oklch')) return colorStr;
-                            try {
-                                const canvas = clonedDoc.createElement('canvas');
-                                canvas.width = 1; canvas.height = 1;
-                                const ctx = canvas.getContext('2d');
-                                if (!ctx) return '#888888';
-                                ctx.fillStyle = colorStr;
-                                ctx.fillRect(0, 0, 1, 1);
-                                const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-                                return `rgb(${r}, ${g}, ${b})`;
-                            } catch (e) { return '#888888'; }
-                        };
-
-                        const noPrintInClone = clonedDoc.querySelectorAll('.no-print');
-                        noPrintInClone.forEach(el => (el as HTMLElement).style.display = 'none');
-
-                        // 3. Recursive function to replace computed oklch in elements
-                        const allElements = clonedDoc.querySelectorAll('*');
-                        allElements.forEach((el) => {
-                            const element = el as HTMLElement;
-                            const style = window.getComputedStyle(element);
-
-                            const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke', 'boxShadow'];
-                            colorProps.forEach(prop => {
-                                try {
-                                    const value = (style as any)[prop];
-                                    if (value && typeof value === 'string' && value.includes('oklch')) {
-                                        element.style.setProperty(prop, convertToRgb(value), 'important');
-                                    }
-                                } catch (e) { }
-                            });
-
-                            if (style.display === 'none' && !element.classList.contains('no-print')) {
-                                element.style.display = 'block';
-                            }
-                        });
-                    }
-                }
+                backgroundColor: '#ffffff'
             });
-
-            // Restore state
-            noPrintElements.forEach(el => (el as HTMLElement).style.display = '');
-            element.style.height = originalStyle;
-            document.body.style.overflow = originalOverflow;
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -176,26 +105,22 @@ export const AdminReports: React.FC = () => {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            // Handle multi-page if content is too long
-            if (pdfHeight > 297) {
-                let heightLeft = pdfHeight;
-                let position = 0;
-                const pageHeight = 297;
+            let heightLeft = pdfHeight;
+            let position = 0;
+            const pageHeight = pdf.internal.pageSize.getHeight();
 
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - pdfHeight;
+                pdf.addPage();
                 pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
                 heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - pdfHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                    heightLeft -= pageHeight;
-                }
-            } else {
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             }
 
             pdf.save(`relatorio-ia-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
+            element.style.display = originalDisplay;
         } catch (error) {
             console.error('Failed to export PDF', error);
             setError('Falha ao gerar o arquivo PDF');
@@ -459,6 +384,88 @@ export const AdminReports: React.FC = () => {
                     </div>
                 </div>
             </Modal>
-        </div >
+
+            {/* Hidden printable report version */}
+            <div id="printable-report" style={{ display: 'none', position: 'absolute', left: '-9999px', width: '800px', padding: '40px', backgroundColor: '#ffffff', color: '#000000', fontFamily: 'sans-serif' }}>
+                <div style={{ textAlign: 'center', marginBottom: '30px', borderBottom: '2px solid #eeeeee', paddingBottom: '20px' }}>
+                    <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Relatório de Gestão - Codornas do Sertão</h1>
+                    <p style={{ fontSize: '14px', color: '#666666', margin: '0' }}>Data: {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
+                    {selectedAviaryId && <p style={{ fontSize: '14px', color: '#666666', margin: '5px 0 0 0' }}>Aviário: {aviaries.find(a => a.id === selectedAviaryId)?.name || selectedAviaryId}</p>}
+                </div>
+
+                {report && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '30px' }}>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Ovos Produzidos</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.producaoTotal}</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Mortalidade Total</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.mortalidadeTotal}</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Taxa Postura</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>{report.taxaMediaPostura}%</p>
+                        </div>
+                        <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '10px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: '#666666', margin: '0 0 5px 0' }}>Receita Total</p>
+                            <p style={{ fontSize: '20px', fontWeight: 'bold', margin: '0' }}>R$ {report.faturamentoTotal?.toLocaleString()}</p>
+                        </div>
+                    </div>
+                )}
+
+                {report?.insights && report.insights.length > 0 && (
+                    <div style={{ marginBottom: '30px' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Análise da IA (Insights)</h2>
+                        <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                            {report.insights.map((insight: string, i: number) => (
+                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5' }}>{insight}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {report?.alertas && report.alertas.length > 0 && (
+                    <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fff7ed', borderRadius: '15px', border: '1px solid #ffedd5' }}>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#ea580c' }}>Alertas Críticos</h2>
+                        <ul style={{ paddingLeft: '20px', margin: '0' }}>
+                            {report.alertas.map((alerta: string, i: number) => (
+                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5', color: '#9a3412', fontWeight: 'bold' }}>{alerta}</li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                {report?.graficos && report.graficos.length > 0 && (
+                    <div>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Detalhamento por Grupo</h2>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                    <th style={{ textAlign: 'left', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>GRUPO</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>PRODUÇÃO</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>TAXA</th>
+                                    <th style={{ textAlign: 'right', padding: '12px', fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>MORTOS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {report.graficos.map((item: any, i: number) => (
+                                    <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '12px', fontSize: '13px', fontWeight: 'bold' }}>{item.name}</td>
+                                        <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.produção}</td>
+                                        <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>{item.taxa}%</td>
+                                        <td style={{ padding: '12px', fontSize: '13px', textAlign: 'right', color: item.mortalidade > 0 ? '#ef4444' : '#000000' }}>{item.mortalidade}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #eeeeee', textAlign: 'center', fontSize: '10px', color: '#999999' }}>
+                    Documento gerado automaticamente pelo sistema de gestão Codornas do Sertão.
+                </div>
+            </div>
+        </div>
     );
 };

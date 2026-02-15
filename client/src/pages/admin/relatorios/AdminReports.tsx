@@ -85,9 +85,20 @@ export const AdminReports: React.FC = () => {
             return;
         }
 
+        setGenerating(true);
         try {
+            // Pre-process: Ensure all images are loaded and scrolling is disabled for capture
+            window.scrollTo(0, 0);
+
             const originalStyle = element.style.height;
+            const originalOverflow = document.body.style.overflow;
+
             element.style.height = 'auto';
+            document.body.style.overflow = 'hidden';
+
+            // Hide PDF button and other no-print elements explicitly during capture
+            const noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => (el as HTMLElement).style.display = 'none');
 
             const canvas = await html2canvas(element, {
                 scale: 2,
@@ -97,21 +108,42 @@ export const AdminReports: React.FC = () => {
                 windowWidth: element.scrollWidth,
                 windowHeight: element.scrollHeight,
                 onclone: (clonedDoc) => {
-                    const elementsWithOklch = clonedDoc.querySelectorAll('*');
-                    elementsWithOklch.forEach((el) => {
-                        const style = window.getComputedStyle(el);
-                        if (style.backgroundColor.includes('oklch')) {
-                            (el as HTMLElement).style.backgroundColor = '#ffffff';
-                        }
-                        if (style.color.includes('oklch')) {
-                            (el as HTMLElement).style.color = '#000000';
-                        }
-                        if (style.borderColor.includes('oklch')) {
-                            (el as HTMLElement).style.borderColor = '#e5e7eb';
-                        }
-                    });
+                    const clonedContent = clonedDoc.getElementById('report-content');
+                    if (clonedContent) {
+                        clonedContent.style.padding = '20px'; // Add some padding for the PDF
+
+                        // Force visible style for cloning
+                        const noPrintInClone = clonedDoc.querySelectorAll('.no-print');
+                        noPrintInClone.forEach(el => (el as HTMLElement).style.display = 'none');
+
+                        const elements = clonedDoc.querySelectorAll('*');
+                        elements.forEach((el) => {
+                            const style = window.getComputedStyle(el);
+
+                            // OKLCH is not supported by html2canvas well
+                            if (style.backgroundColor.includes('oklch')) {
+                                (el as HTMLElement).style.backgroundColor = '#ffffff';
+                            }
+                            if (style.color.includes('oklch')) {
+                                (el as HTMLElement).style.color = '#000000';
+                            }
+                            if (style.borderColor.includes('oklch')) {
+                                (el as HTMLElement).style.borderColor = '#e5e7eb';
+                            }
+
+                            // Ensure visibility
+                            if (style.display === 'none' && !el.classList.contains('no-print')) {
+                                (el as HTMLElement).style.display = 'block';
+                            }
+                        });
+                    }
                 }
             });
+
+            // Restore state
+            noPrintElements.forEach(el => (el as HTMLElement).style.display = '');
+            element.style.height = originalStyle;
+            document.body.style.overflow = originalOverflow;
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
@@ -119,13 +151,31 @@ export const AdminReports: React.FC = () => {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`relatorio-ia-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
+            // Handle multi-page if content is too long
+            if (pdfHeight > 297) {
+                let heightLeft = pdfHeight;
+                let position = 0;
+                const pageHeight = 297;
 
-            element.style.height = originalStyle;
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - pdfHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pageHeight;
+                }
+            } else {
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            }
+
+            pdf.save(`relatorio-ia-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
         } catch (error) {
             console.error('Failed to export PDF', error);
             setError('Falha ao gerar o arquivo PDF');
+        } finally {
+            setGenerating(false);
         }
     };
 

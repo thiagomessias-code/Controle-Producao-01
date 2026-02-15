@@ -21,8 +21,25 @@ export default function FinancialDashboard({ selectedAviaryId: propAviaryId }: {
     );
 
     const [selectedAviaryId, setSelectedAviaryId] = useState(() => localStorage.getItem('admin_selected_aviary_id') || "");
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
     const [aviaries, setAviaries] = useState<any[]>([]);
     const [batches, setBatches] = useState<any[]>([]);
+
+    const setQuickFilter = (type: 'today' | 'week' | 'month') => {
+        const end = new Date();
+        let start = new Date();
+
+        if (type === 'today') {
+            // Stay as today
+        } else if (type === 'week') {
+            start.setDate(end.getDate() - 7);
+        } else if (type === 'month') {
+            start.setMonth(end.getMonth() - 1);
+        }
+
+        setDateStart(start.toISOString().split('T')[0]);
+        setDateEnd(end.toISOString().split('T')[0]);
+    };
 
     // Sync prop with state if provided
     useEffect(() => {
@@ -78,6 +95,8 @@ export default function FinancialDashboard({ selectedAviaryId: propAviaryId }: {
         const filtered = sales.filter(s => {
             const sDate = new Date(s.date);
             if (sDate < start || sDate > end) return false;
+
+            if (paymentMethodFilter !== 'all' && s.paymentMethod !== paymentMethodFilter) return false;
 
             if (activeAviaryId) {
                 // Unified Matching Logic (Steps 0-4)
@@ -231,9 +250,27 @@ export default function FinancialDashboard({ selectedAviaryId: propAviaryId }: {
                             </select>
                         )}
                     </div>
-                    <div className="flex items-end">
-                        <Button variant="outline" onClick={() => window.print()} className="w-full">
-                            🖨️ Imprimir Relatório
+                    <div>
+                        <label className="text-sm font-medium mb-1 block">Forma de Pagamento</label>
+                        <select
+                            className="w-full p-2 border rounded"
+                            value={paymentMethodFilter}
+                            onChange={e => setPaymentMethodFilter(e.target.value)}
+                        >
+                            <option value="all">Todas as Formas</option>
+                            <option value="cash">Dinheiro</option>
+                            <option value="payment_app">Pix / App</option>
+                            <option value="transfer">Transferência</option>
+                            <option value="other">Outros</option>
+                        </select>
+                    </div>
+                    <div className="flex items-end gap-2 md:col-span-4">
+                        <Button variant="outline" size="sm" onClick={() => setQuickFilter('today')} className="font-bold border-blue-100 text-blue-600">HOJE</Button>
+                        <Button variant="outline" size="sm" onClick={() => setQuickFilter('week')} className="font-bold border-blue-100 text-blue-600">ÚLTIMOS 7 DIAS</Button>
+                        <Button variant="outline" size="sm" onClick={() => setQuickFilter('month')} className="font-bold border-blue-100 text-blue-600">ESTE MÊS</Button>
+                        <div className="flex-1"></div>
+                        <Button variant="outline" onClick={() => window.print()} className="px-8">
+                            🖨️ Imprimir
                         </Button>
                     </div>
                 </CardContent>
@@ -287,6 +324,7 @@ export default function FinancialDashboard({ selectedAviaryId: propAviaryId }: {
                                             <th className="p-3 text-left">Produto</th>
                                             <th className="p-3 text-left">Qtd</th>
                                             <th className="p-3 text-left">Valor Total</th>
+                                            <th className="p-3 text-left">Forma</th>
                                             <th className="p-3 text-left">Comprador</th>
                                             {isAdmin && <th className="p-3 text-left bg-blue-50 text-blue-800">Origem (Admin)</th>}
                                         </tr>
@@ -294,12 +332,23 @@ export default function FinancialDashboard({ selectedAviaryId: propAviaryId }: {
                                     <tbody>
                                         {filteredSales.map(sale => {
                                             const group = groups?.find(g => g.id === sale.groupId);
+                                            const methodLabels: any = {
+                                                'cash': '💵 Dinheiro',
+                                                'payment_app': '📱 Pix/App',
+                                                'transfer': '🏦 Transf.',
+                                                'other': '❓ Outro'
+                                            };
                                             return (
                                                 <tr key={sale.id} className="border-b hover:bg-gray-50">
                                                     <td className="p-3">{formatDate(sale.date)}</td>
                                                     <td className="p-3 font-medium">{sale.productType}</td>
                                                     <td className="p-3">{formatQuantity(sale.quantity)}</td>
                                                     <td className="p-3 font-bold text-green-700">{formatCurrency(sale.totalPrice)}</td>
+                                                    <td className="p-3">
+                                                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-600 uppercase">
+                                                            {methodLabels[sale.paymentMethod] || sale.paymentMethod}
+                                                        </span>
+                                                    </td>
                                                     <td className="p-3">{sale.buyer || '-'}</td>
                                                     {isAdmin && (
                                                         <td className="p-3 bg-blue-50/50 text-xs text-blue-900">

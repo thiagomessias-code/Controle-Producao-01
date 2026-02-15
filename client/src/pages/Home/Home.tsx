@@ -48,6 +48,14 @@ const quickActions = [
     textColor: "text-amber-600"
   },
   {
+    label: "Abastecer Silo",
+    path: "/abastecer-silo",
+    icon: "🚜",
+    color: "bg-blue-500",
+    lightColor: "bg-blue-50",
+    textColor: "text-blue-600"
+  },
+  {
     label: "Registrar Incubação",
     path: "/incubation/create",
     icon: "🥚",

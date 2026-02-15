@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Label } from "@/components/ui/label";
 import { useSales } from "@/hooks/useSales";
 import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
@@ -116,15 +117,40 @@ export default function RegisterSale() {
       .filter(i => {
         if (i.status !== "in_stock") return false;
         if (typeHint && i.type !== typeHint) return false;
+
         const invName = (i.subtype || "").toLowerCase();
-        if ((target.includes('abatida') || target.includes('abate')) &&
-          (invName.includes('abatida') || invName.includes('abate') || i.type === 'meat')) {
-          return true;
-        }
-        const normalize = (str: string) => str.replace(/s\b/g, "").replace(/\s+/g, " ").trim();
+
+        // Advanced Normalization for Portuguese
+        const normalize = (str: string) => {
+          return str.toLowerCase()
+            .replace(/[àáâãä]/g, "a")
+            .replace(/[èéêë]/g, "e")
+            .replace(/[ìíîï]/g, "i")
+            .replace(/[òóôõö]/g, "o")
+            .replace(/[ùúûü]/g, "u")
+            .replace(/ç/g, "c")
+            .replace(/s\b/g, "") // Remove plural 's' at end of words
+            .replace(/\s+/g, " ")
+            .trim();
+        };
+
         const targetNorm = normalize(target);
         const invNorm = normalize(invName);
-        return invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
+
+        // Special case for Eggs (Ovos)
+        const isEgg = targetNorm.includes('ovo') || invNorm.includes('ovo');
+        if (isEgg) {
+          // If product is "Ovos" matching "Ovo Cru", "Ovo Fertil", etc.
+          if (targetNorm.includes('ovo') && invNorm.includes('ovo')) return true;
+        }
+
+        const match = invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
+
+        if (match) {
+          console.log(`DEBUG Stock Match: Found ${i.quantity} of ${i.subtype} for product ${target}`);
+        }
+
+        return match;
       })
       .reduce((acc, i) => acc + i.quantity, 0);
   };
@@ -387,8 +413,8 @@ export default function RegisterSale() {
                         <div
                           key={v.id}
                           className={`relative group cursor-pointer p-6 rounded-[2rem] border-2 transition-all duration-300 ${selectedVariation?.id === v.id
-                              ? 'border-blue-600 bg-blue-50/30'
-                              : 'border-gray-100 hover:border-blue-100 hover:bg-gray-50'
+                            ? 'border-blue-600 bg-blue-50/30'
+                            : 'border-gray-100 hover:border-blue-100 hover:bg-gray-50'
                             }`}
                           onClick={() => setSelectedVariation(v as ProductVariation)}
                         >

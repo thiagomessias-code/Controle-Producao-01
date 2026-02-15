@@ -43,15 +43,31 @@ export const useFeed = (id?: string, isBatch: boolean = false) => {
     },
   });
 
+  const { data: availableFeeds = [], isLoading: isLoadingTypes } = useQuery({
+    queryKey: ["feed_types"],
+    queryFn: () => feedApi.getFeedTypes(),
+  });
+
+  const resupplyMutation = useMutation({
+    mutationFn: ({ id, quantity, userId }: { id: string; quantity: number; userId: string }) =>
+      feedApi.resupply(id, quantity, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["feed_types"] });
+    },
+  });
+
   return {
     feeds,
-    isLoading,
+    availableFeeds,
+    isLoading: isLoading || isLoadingTypes,
     error,
     create: createMutation.mutate,
     update: updateMutation.mutate,
     delete: deleteMutation.mutate,
+    resupply: resupplyMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isResupplying: resupplyMutation.isPending,
   };
 };

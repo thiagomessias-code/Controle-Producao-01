@@ -456,6 +456,13 @@ export default function FeedUsage() {
             ⬅️ Voltar
           </Button>
           <Button
+            variant="outline"
+            onClick={() => setLocation('/abastecer-silo')}
+            className="rounded-xl font-bold border-orange-100 text-orange-600 hover:bg-orange-50"
+          >
+            🚜 ABASTECER SILO
+          </Button>
+          <Button
             variant={showForm ? "outline" : "primary"}
             className={`rounded-xl font-black shadow-lg ${showForm ? 'border-orange-100 text-orange-600 hover:bg-orange-50' : 'shadow-orange-200'}`}
             onClick={() => {

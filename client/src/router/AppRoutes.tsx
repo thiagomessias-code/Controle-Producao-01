@@ -49,6 +49,7 @@ import MortalityHistory from "@/pages/Mortality/MortalityHistory";
 
 // Feed Pages
 import FeedUsage from "@/pages/Feed/FeedUsage";
+import RefillSiloPage from "@/pages/Feed/RefillSiloPage";
 
 // Sales Pages
 import RegisterSale from "@/pages/Sales/RegisterSale";
@@ -206,6 +207,7 @@ export default function AppRoutes() {
 
       {/* Feed Routes */}
       <Route path="/feed" component={() => <ProtectedRoute component={FeedUsage} />} />
+      <Route path="/abastecer-silo" component={() => <ProtectedRoute component={RefillSiloPage} />} />
 
       {/* Sales Routes */}
       <Route path="/sales" component={() => <ProtectedRoute component={SalesHistory} />} />

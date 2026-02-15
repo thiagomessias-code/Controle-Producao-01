@@ -110,30 +110,48 @@ export const AdminReports: React.FC = () => {
                 onclone: (clonedDoc) => {
                     const clonedContent = clonedDoc.getElementById('report-content');
                     if (clonedContent) {
-                        clonedContent.style.padding = '20px'; // Add some padding for the PDF
+                        clonedContent.style.padding = '20px';
 
-                        // Force visible style for cloning
+                        // Inject safe styles to kill oklch variables at the root level
+                        // This prevents html2canvas from failing when it parses CSS variables in :root
+                        const styleTag = clonedDoc.createElement('style');
+                        styleTag.innerHTML = `
+                            :root {
+                                --background: 255 255 255 !important;
+                                --foreground: 0 0 0 !important;
+                                --primary: 0 0 0 !important;
+                                --secondary: 240 240 240 !important;
+                                --muted: 240 240 240 !important;
+                                --accent: 240 240 240 !important;
+                                --border: 220 220 220 !important;
+                            }
+                        `;
+                        clonedDoc.head.appendChild(styleTag);
+
                         const noPrintInClone = clonedDoc.querySelectorAll('.no-print');
                         noPrintInClone.forEach(el => (el as HTMLElement).style.display = 'none');
 
-                        const elements = clonedDoc.querySelectorAll('*');
-                        elements.forEach((el) => {
-                            const style = window.getComputedStyle(el);
+                        // Recursive function to replace oklch in styles
+                        const allElements = clonedDoc.querySelectorAll('*');
+                        allElements.forEach((el) => {
+                            const element = el as HTMLElement;
+                            const style = window.getComputedStyle(element);
 
-                            // OKLCH is not supported by html2canvas well
-                            if (style.backgroundColor.includes('oklch')) {
-                                (el as HTMLElement).style.backgroundColor = '#ffffff';
-                            }
-                            if (style.color.includes('oklch')) {
-                                (el as HTMLElement).style.color = '#000000';
-                            }
-                            if (style.borderColor.includes('oklch')) {
-                                (el as HTMLElement).style.borderColor = '#e5e7eb';
-                            }
+                            const colorProps = ['color', 'backgroundColor', 'borderColor', 'fill', 'stroke'];
+                            colorProps.forEach(prop => {
+                                try {
+                                    const value = (style as any)[prop];
+                                    if (value && typeof value === 'string' && value.includes('oklch')) {
+                                        let fallback = '#000000';
+                                        if (prop === 'backgroundColor') fallback = '#ffffff';
+                                        if (prop === 'borderColor') fallback = '#e5e7eb';
+                                        element.style.setProperty(prop, fallback, 'important');
+                                    }
+                                } catch (e) { }
+                            });
 
-                            // Ensure visibility
-                            if (style.display === 'none' && !el.classList.contains('no-print')) {
-                                (el as HTMLElement).style.display = 'block';
+                            if (style.display === 'none' && !element.classList.contains('no-print')) {
+                                element.style.display = 'block';
                             }
                         });
                     }

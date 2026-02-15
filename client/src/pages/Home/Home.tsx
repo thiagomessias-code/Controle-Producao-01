@@ -185,7 +185,7 @@ export default function Home() {
                 >
                   {f.label}
                 </button>
-              ))]}
+              ))}
             </div>
           </div>
 
@@ -273,7 +273,7 @@ export default function Home() {
                   </div>
                 </CardContent>
               </Card>
-            ))]}
+            ))}
           </div>
 
           {/* Recent Groups (Production Only) */}

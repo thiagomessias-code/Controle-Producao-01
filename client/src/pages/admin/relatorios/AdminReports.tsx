@@ -418,9 +418,20 @@ export const AdminReports: React.FC = () => {
                     <div style={{ marginBottom: '30px' }}>
                         <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#2563eb' }}>Análise da IA (Insights)</h2>
                         <ul style={{ paddingLeft: '20px', margin: '0' }}>
-                            {report.insights.map((insight: string, i: number) => (
-                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5' }}>{insight}</li>
-                            ))}
+                            {report.insights.map((insight: string, i: number) => {
+                                // If it's a JSON string, try to extract the main text or just show as is if not possible
+                                let displayText = insight;
+                                try {
+                                    if (insight.startsWith('{') || insight.startsWith('[')) {
+                                        const parsed = JSON.parse(insight);
+                                        displayText = typeof parsed === 'string' ? parsed : (parsed.diagnostico || insight);
+                                    }
+                                } catch (e) { }
+
+                                return (
+                                    <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5' }}>{displayText}</li>
+                                );
+                            })}
                         </ul>
                     </div>
                 )}
@@ -429,8 +440,10 @@ export const AdminReports: React.FC = () => {
                     <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fff7ed', borderRadius: '15px', border: '1px solid #ffedd5' }}>
                         <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '15px', color: '#ea580c' }}>Alertas Críticos</h2>
                         <ul style={{ paddingLeft: '20px', margin: '0' }}>
-                            {report.alertas.map((alerta: string, i: number) => (
-                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5', color: '#9a3412', fontWeight: 'bold' }}>{alerta}</li>
+                            {report.alertas.map((alerta: any, i: number) => (
+                                <li key={i} style={{ marginBottom: '10px', fontSize: '14px', lineHeight: '1.5', color: '#9a3412', fontWeight: 'bold' }}>
+                                    {typeof alerta === 'object' ? (alerta.mensagem || JSON.stringify(alerta)) : alerta}
+                                </li>
                             ))}
                         </ul>
                     </div>

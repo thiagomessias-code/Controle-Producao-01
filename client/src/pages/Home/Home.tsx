@@ -466,16 +466,17 @@ return (
         </div>
       )}
     </div>
-    );
+  </div>
+);
 }
 
-    function FeedActivity() {
-  const {feeds} = useFeed();
-    const recentFeeds = (feeds || []).slice(0, 3);
+function FeedActivity() {
+  const { feeds } = useFeed();
+  const recentFeeds = (feeds || []).slice(0, 3);
 
-    if (recentFeeds.length === 0) return null;
+  if (recentFeeds.length === 0) return null;
 
-    return (
+  return (
     <div className="space-y-3">
       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Alimentação</h4>
       {recentFeeds.map(f => (
@@ -488,5 +489,5 @@ return (
         </div>
       ))}
     </div>
-    );
+  );
 }

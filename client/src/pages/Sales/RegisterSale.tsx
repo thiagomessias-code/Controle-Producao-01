@@ -140,6 +140,26 @@ export default function RegisterSale() {
       .reduce((acc, i) => acc + i.quantity, 0);
   };
 
+  const getVariationMultiplier = (variation: ProductVariation | null): number => {
+    if (!variation) return 1;
+    const name = variation.name.toLowerCase();
+    const unit = (variation.unit_type || "").toLowerCase();
+
+    // Try to find a number in parentheses or after name
+    const match = name.match(/(\d+)/);
+    if (match) {
+      const num = parseInt(match[1]);
+      // If it's a "Bandeja 30" but the unit is "unidade", maybe it's 30
+      if (num > 1) return num;
+    }
+
+    if (unit === "dúzia" || name.includes("duzia")) return 12;
+    if (unit === "bandeja" || name.includes("bandeja")) return 30; // Default tray size
+    if (unit === "caixa" || name.includes("caixa")) return 30; // Often used for trays too
+
+    return 1;
+  };
+
   const getFifoSuggestions = (productName: string) => {
     const target = productName.toLowerCase();
     const product = products.find(p => p.nome.toLowerCase() === target);
@@ -220,10 +240,32 @@ export default function RegisterSale() {
         let stockSubtype = selectedProduct.nome;
         let stockType: "egg" | "meat" | "chick" = isEgg ? 'egg' : (isLive ? 'chick' : (isMeat ? 'meat' : 'egg'));
 
+        // If product has a ficha_tecnica with quantity > 1 (e.g. 30), 
+        // it assumes it produces ONE product unit (e.g. 1 tray).
+        // If the variation is "unidade", we should DIVIDE the deduction if the user enters 1.
+        // BUT, usually users enter the NUMBER of items.
+        // If variation is "Bandeja 30" and they sold 1 -> qty=1 -> we want 30 eggs.
+        // If variation is "Unidade" and they sold 30 -> qty=30 -> we want 30 eggs.
+
+        // LOGIC: If the variation name implies a quantity (e.g. 30), we use it.
+        // If it DOESN'T (like "Unidade"), we use 1.
+        const multiplier = getVariationMultiplier(selectedVariation);
+
+        // If the ficha_tecnica already has the 30 eggs, and multiplier is 30, it double counts.
+        // We only apply multiplier if it's NOT already accounted for in a single unit of the product.
+        // This is tricky. Let's assume the ficha_tecnica defines the "Base Item" (e.g. 1 Ovo).
+        // If ficha_tecnica is [{ quantity: 1 }], then multiplier works perfectly.
+        // If ficha_tecnica is [{ quantity: 30 }], it means 1 product = 30 eggs.
+
+        // Let's assume the user's "Ovos" product has ficha_tecnica = 1.
+        // Then 1 tray = 30 eggs.
+
+        const finalStockQty = qty * multiplier;
+
         const origins = await processSale(
           stockType,
           stockSubtype,
-          qty,
+          finalStockQty,
           "venda",
           selectedProduct.ficha_tecnica
         );
@@ -563,6 +605,17 @@ export default function RegisterSale() {
                     <span>Subtotal</span>
                     <span className="text-white tabular-nums">{formatCurrency(calculateTotal())}</span>
                   </div>
+
+                  <div className="pt-4 border-t border-white/5 flex flex-col gap-1">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Baixa no Estoque</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-gray-300">Total a retirar:</span>
+                      <span className="text-sm font-black text-indigo-300">
+                        {parseInt(formData.quantity) * getVariationMultiplier(selectedVariation)} unidades
+                      </span>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center pt-6 border-t border-white/10 group">
                     <span className="text-indigo-300 font-black uppercase tracking-widest text-sm group-hover:text-indigo-200 transition-colors">Total a Receber</span>
                     <span className="text-4xl font-black text-white tabular-nums tracking-tight">

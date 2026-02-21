@@ -164,8 +164,10 @@ export const warehouseApi = {
             })
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
 
+        console.log(`DEBUG processSale: Deducting ${quantity} of ${subtype} (${type}). Found ${relevantItems.length} matching inventory batches.`);
+
         const totalAvailable = relevantItems.reduce((acc, i) => acc + i.quantity, 0);
-        if (totalAvailable < quantity) throw new Error(`Estoque insuficiente. Disponível: ${totalAvailable}`);
+        if (totalAvailable < quantity) throw new Error(`Estoque insuficiente de ${subtype}. Disponível: ${totalAvailable}, Necessário: ${quantity}`);
 
         let remainingToDeduct = quantity;
 

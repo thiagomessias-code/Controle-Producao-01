@@ -1,6 +1,7 @@
 import { supabaseClient, supabase } from "./supabaseClient";
+import { normalizeText } from "../utils/format";
 
-// PRODUCT_TRANSFORMATION_RULES removed - now using 'ficha_tecnica' defined in DB per product.
+// ... (rest of imports and interfaces)
 
 export interface InventoryItem {
     id: string;
@@ -151,10 +152,15 @@ export const warehouseApi = {
         const relevantItems = inventory
             .filter(i => {
                 const typeMatch = i.type === type;
-                // Fuzzy match for subtypes (useful for pinto batches or variations)
-                const subtypeMatch = i.subtype.toLowerCase().includes(subtype.toLowerCase()) ||
-                    subtype.toLowerCase().includes(i.subtype.toLowerCase());
-                return typeMatch && subtypeMatch && i.quantity > 0;
+                // Advanced matching using normalized text for plurals and accents
+                const targetNorm = normalizeText(subtype);
+                const invNorm = normalizeText(i.subtype);
+
+                // For eggs, allow generic matches
+                const isEggMatch = (targetNorm.includes('ovo') && invNorm.includes('ovo'));
+                const isFuzzyMatch = invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
+
+                return typeMatch && (isEggMatch || isFuzzyMatch) && i.quantity > 0;
             })
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
 

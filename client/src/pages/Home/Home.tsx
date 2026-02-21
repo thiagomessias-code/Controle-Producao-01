@@ -168,25 +168,6 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm self-start md:self-end">
-              {[
-                { id: 'today', label: 'Hoje' },
-                { id: 'week', label: 'Semana' },
-                { id: 'month', label: 'Mês' },
-                { id: 'all', label: 'Total' }
-              ].map(f => (
-                <button
-                  key={f.id}
-                  onClick={() => setFilterType(f.id as any)}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === f.id
-                    ? 'bg-orange-600 text-white shadow-lg shadow-orange-100'
-                    : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Welcome Section */}
@@ -253,121 +234,78 @@ export default function Home() {
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[
-              { label: "Grupos Ativos", val: activeGroups.length, sub: `${activeGroups.filter((g: any) => g.phase === "crescimento").length} crescimento`, icon: "🏢" },
-              { label: "Total de Aves", val: formatQuantity(totalBirds), sub: `Em ${activeGroups.length} grupos`, icon: "🐦" },
-              { label: "Produção Período", val: formatQuantity(totalProduction), sub: `${filteredProductions.length} registros`, icon: "📊" },
-              { label: "Receita Período", val: formatCurrency(totalRevenue), sub: `${filteredSales.length} vendas`, icon: "💰" }
-            ].map((stat, i) => (
-              <Card key={i} className="group hover:-translate-y-1">
-                <CardContent className="pt-6 relative overflow-hidden">
-                  <div className="absolute -top-2 -right-2 text-4xl opacity-5 group-hover:rotate-12 group-hover:scale-110 transition-all">{stat.icon}</div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <p className="text-3xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">{stat.val}</p>
-                  <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-50">
-                    <div className="w-1 h-1 rounded-full bg-orange-500"></div>
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
-                      {stat.sub}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Recent Groups (Production Only) */}
-          {activeGroups.filter((g: any) => g.phase !== "crescimento").length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-foreground">Lotes de Postura Recentes</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/groups")}
-                >
-                  Ver Todos
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeGroups
-                  .filter((g: any) => g.phase !== "crescimento")
-                  .slice(0, 3)
-                  .map((group: any) => {
-                    const activeBatch = (batches || []).find(b => b.galpao_id === group.id && b.status === 'active');
-                    return (
-                      <Card
-                        key={group.id}
-                        className="hover:shadow-lg transition-shadow cursor-pointer"
-                        onClick={() => {
-                          console.log(`DEBUG: Clicking card for group ${group.name} (${group.id}). Found active batch:`, activeBatch?.id);
-                          if (activeBatch) {
-                            setLocation(`/batches/${activeBatch.id}`);
-                          } else {
-                            setLocation(`/groups/${group.id}`);
-                          }
-                        }}
-                      >
-                        <CardHeader>
-                          <CardTitle className="text-lg">{group.name}</CardTitle>
-                          <CardDescription>{group.species}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Quantidade:</span>
-                              <span className="font-semibold text-primary">
-                                {formatQuantity(group.quantity)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Fase:</span>
-                              <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                Postura
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Local:</span>
-                              <span className="text-sm font-medium">{group.location}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+          <div className="space-y-4">
+            <div className="flex justify-start">
+              <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-fit">
+                {[
+                  { id: 'today', label: 'Hoje' },
+                  { id: 'week', label: 'Semana' },
+                  { id: 'month', label: 'Mês' },
+                  { id: 'all', label: 'Total' }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilterType(f.id as any)}
+                    className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === f.id
+                      ? 'bg-orange-600 text-white shadow-lg shadow-orange-100'
+                      : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )
-          }
 
-          {/* Recent Growth Boxes */}
-          {
-            activeGroups.filter((g: any) => g.phase === "crescimento").length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[
+                { label: "Grupos Ativos", val: activeGroups.length, sub: `${activeGroups.filter((g: any) => g.phase === "crescimento").length} crescimento`, icon: "🏢" },
+                { label: "Total de Aves", val: formatQuantity(totalBirds), sub: `Em ${activeGroups.length} grupos`, icon: "🐦" },
+                { label: "Produção Período", val: formatQuantity(totalProduction), sub: `${filteredProductions.length} registros`, icon: "📊" },
+                { label: "Receita Período", val: formatCurrency(totalRevenue), sub: `${filteredSales.length} vendas`, icon: "💰" }
+              ].map((stat, i) => (
+                <Card key={i} className="group hover:-translate-y-1">
+                  <CardContent className="pt-6 relative overflow-hidden">
+                    <div className="absolute -top-2 -right-2 text-4xl opacity-5 group-hover:rotate-12 group-hover:scale-110 transition-all">{stat.icon}</div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                    <p className="text-3xl font-black text-gray-900 group-hover:text-orange-600 transition-colors">{stat.val}</p>
+                    <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-gray-50">
+                      <div className="w-1 h-1 rounded-full bg-orange-500"></div>
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                        {stat.sub}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Recent Groups (Production Only) */}
+            {activeGroups.filter((g: any) => g.phase !== "crescimento").length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-foreground">Caixas de Crescimento Recentes</h2>
+                  <h2 className="text-2xl font-bold text-foreground">Lotes de Postura Recentes</h2>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setLocation("/groups/growth")}
+                    onClick={() => setLocation("/groups")}
                   >
-                    Ver Todas
+                    Ver Todos
                   </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {activeGroups
-                    .filter((g: any) => g.phase === "crescimento")
+                    .filter((g: any) => g.phase !== "crescimento")
                     .slice(0, 3)
                     .map((group: any) => {
                       const activeBatch = (batches || []).find(b => b.galpao_id === group.id && b.status === 'active');
                       return (
                         <Card
                           key={group.id}
-                          className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500"
+                          className="hover:shadow-lg transition-shadow cursor-pointer"
                           onClick={() => {
-                            console.log(`DEBUG: Clicking card for growth group ${group.name} (${group.id}). Found active batch:`, activeBatch?.id);
+                            console.log(`DEBUG: Clicking card for group ${group.name} (${group.id}). Found active batch:`, activeBatch?.id);
                             if (activeBatch) {
                               setLocation(`/batches/${activeBatch.id}`);
                             } else {
@@ -389,8 +327,8 @@ export default function Home() {
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Fase:</span>
-                                <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                  Crescimento
+                                <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  Postura
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
@@ -405,104 +343,170 @@ export default function Home() {
                 </div>
               </div>
             )
-          }
+            }
 
-          {/* Empty State */}
-        </div>
-        <div className="lg:col-span-1 space-y-8">
-          <Card className="border-none shadow-xl shadow-orange-100/30 overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -mr-16 -mt-16 opacity-50 z-0"></div>
-            <CardHeader className="pb-4 relative z-10 border-none">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-xl text-orange-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+            {/* Recent Growth Boxes */}
+            {
+              activeGroups.filter((g: any) => g.phase === "crescimento").length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-foreground">Caixas de Crescimento Recentes</h2>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation("/groups/growth")}
+                    >
+                      Ver Todas
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {activeGroups
+                      .filter((g: any) => g.phase === "crescimento")
+                      .slice(0, 3)
+                      .map((group: any) => {
+                        const activeBatch = (batches || []).find(b => b.galpao_id === group.id && b.status === 'active');
+                        return (
+                          <Card
+                            key={group.id}
+                            className="hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-l-blue-500"
+                            onClick={() => {
+                              console.log(`DEBUG: Clicking card for growth group ${group.name} (${group.id}). Found active batch:`, activeBatch?.id);
+                              if (activeBatch) {
+                                setLocation(`/batches/${activeBatch.id}`);
+                              } else {
+                                setLocation(`/groups/${group.id}`);
+                              }
+                            }}
+                          >
+                            <CardHeader>
+                              <CardTitle className="text-lg">{group.name}</CardTitle>
+                              <CardDescription>{group.species}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Quantidade:</span>
+                                  <span className="font-semibold text-primary">
+                                    {formatQuantity(group.quantity)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Fase:</span>
+                                  <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    Crescimento
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Local:</span>
+                                  <span className="text-sm font-medium">{group.location}</span>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg font-black text-gray-900 leading-tight">Atividade Recente</CardTitle>
-                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Registros do Sistema</CardDescription>
+              )
+            }
+
+            {/* Empty State */}
+          </div>
+          <div className="lg:col-span-1 space-y-8">
+            <Card className="border-none shadow-xl shadow-orange-100/30 overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full -mr-16 -mt-16 opacity-50 z-0"></div>
+              <CardHeader className="pb-4 relative z-10 border-none">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-xl text-orange-600">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-black text-gray-900 leading-tight">Atividade Recente</CardTitle>
+                    <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Registros do Sistema</CardDescription>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="space-y-6">
-                {/* Feeds Recentes */}
-                {(() => {
-                  const recentFeeds = (feeds || []).slice(0, 3);
-                  if (recentFeeds.length === 0) return null;
-                  return (
-                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] ml-1">Alimentação</h4>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="space-y-6">
+                  {/* Feeds Recentes */}
+                  {(() => {
+                    const recentFeeds = (feeds || []).slice(0, 3);
+                    if (recentFeeds.length === 0) return null;
+                    return (
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] ml-1">Alimentação</h4>
+                        <div className="space-y-2">
+                          {recentFeeds.map(f => (
+                            <div key={f.id} className="flex gap-4 p-3 rounded-xl hover:bg-orange-50 transition-all duration-300 group cursor-default border border-transparent hover:border-orange-100/50">
+                              <div className="w-10 h-10 bg-orange-50 group-hover:bg-white text-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm">🌾</div>
+                              <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                <p className="text-sm font-bold text-gray-800 truncate group-hover:text-orange-700 transition-colors">{f.feedTypeName || 'Ração'}</p>
+                                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-tight">{f.quantity}kg • {new Date(f.date).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Produção Recente */}
+                  {productions.length > 0 && (
+                    <div className="space-y-4 pt-2">
+                      <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] ml-1">Produção</h4>
                       <div className="space-y-2">
-                        {recentFeeds.map(f => (
-                          <div key={f.id} className="flex gap-4 p-3 rounded-xl hover:bg-orange-50 transition-all duration-300 group cursor-default border border-transparent hover:border-orange-100/50">
-                            <div className="w-10 h-10 bg-orange-50 group-hover:bg-white text-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm">🌾</div>
+                        {productions.slice(0, 3).map(p => (
+                          <div key={p.id} className="flex gap-4 p-3 rounded-xl hover:bg-orange-50 transition-all duration-300 group cursor-default border border-transparent hover:border-orange-100/50">
+                            <div className="w-10 h-10 bg-orange-50 group-hover:bg-white text-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm">📊</div>
                             <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <p className="text-sm font-bold text-gray-800 truncate group-hover:text-orange-700 transition-colors">{f.feedTypeName || 'Ração'}</p>
-                              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-tight">{f.quantity}kg • {new Date(f.date).toLocaleDateString()}</p>
+                              <p className="text-sm font-bold text-gray-800 truncate group-hover:text-orange-700 transition-colors">{p.quantity} ovos</p>
+                              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-tight">{new Date(p.date).toLocaleDateString()}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-                {/* Produção Recente */}
-                {productions.length > 0 && (
-                  <div className="space-y-4 pt-2">
-                    <h4 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] ml-1">Produção</h4>
-                    <div className="space-y-2">
-                      {productions.slice(0, 3).map(p => (
-                        <div key={p.id} className="flex gap-4 p-3 rounded-xl hover:bg-orange-50 transition-all duration-300 group cursor-default border border-transparent hover:border-orange-100/50">
-                          <div className="w-10 h-10 bg-orange-50 group-hover:bg-white text-orange-600 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors shadow-sm">📊</div>
-                          <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <p className="text-sm font-bold text-gray-800 truncate group-hover:text-orange-700 transition-colors">{p.quantity} ovos</p>
-                            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-tight">{new Date(p.date).toLocaleDateString()}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <TodoList />
-        </div>
-        {safeGroups.length === 0 && (
-          <div className="text-center py-12 bg-muted/50 rounded-lg">
-            <p className="text-2xl font-bold text-foreground mb-4">Bem-vindo à Fazenda! 🚀</p>
-            <p className="text-muted-foreground mb-6">
-              Acompanhe a produção e gerencie os lotes ativos.
-            </p>
+            <TodoList />
           </div>
-        )}
+          {safeGroups.length === 0 && (
+            <div className="text-center py-12 bg-muted/50 rounded-lg">
+              <p className="text-2xl font-bold text-foreground mb-4">Bem-vindo à Fazenda! 🚀</p>
+              <p className="text-muted-foreground mb-6">
+                Acompanhe a produção e gerencie os lotes ativos.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+      );
 }
 
-function FeedActivity() {
-  const { feeds } = useFeed();
-  const recentFeeds = (feeds || []).slice(0, 3);
+      function FeedActivity() {
+  const {feeds} = useFeed();
+      const recentFeeds = (feeds || []).slice(0, 3);
 
-  if (recentFeeds.length === 0) return null;
+      if (recentFeeds.length === 0) return null;
 
-  return (
-    <div className="space-y-3">
-      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Alimentação</h4>
-      {recentFeeds.map(f => (
-        <div key={f.id} className="flex gap-3 text-sm p-2 rounded hover:bg-gray-50 transition-colors">
-          <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded flex items-center justify-center flex-shrink-0">🌾</div>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900 truncate">{f.feedTypeName || 'Ração'}</p>
-            <p className="text-xs text-gray-500">{f.quantity}kg • {new Date(f.date).toLocaleDateString()}</p>
+      return (
+      <div className="space-y-3">
+        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Alimentação</h4>
+        {recentFeeds.map(f => (
+          <div key={f.id} className="flex gap-3 text-sm p-2 rounded hover:bg-gray-50 transition-colors">
+            <div className="w-8 h-8 bg-amber-100 text-amber-600 rounded flex items-center justify-center flex-shrink-0">🌾</div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 truncate">{f.feedTypeName || 'Ração'}</p>
+              <p className="text-xs text-gray-500">{f.quantity}kg • {new Date(f.date).toLocaleDateString()}</p>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
-  );
+        ))}
+      </div>
+      );
 }

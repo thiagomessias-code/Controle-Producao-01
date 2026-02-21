@@ -9,7 +9,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrency, normalizeText } from "@/utils/format";
 import { supabase } from "@/api/supabaseClient";
 import { aviariesApi } from "@/api/aviaries";
 import { toast } from "sonner";
@@ -119,23 +119,8 @@ export default function RegisterSale() {
         if (typeHint && i.type !== typeHint) return false;
 
         const invName = (i.subtype || "").toLowerCase();
-
-        // Advanced Normalization for Portuguese
-        const normalize = (str: string) => {
-          return str.toLowerCase()
-            .replace(/[àáâãä]/g, "a")
-            .replace(/[èéêë]/g, "e")
-            .replace(/[ìíîï]/g, "i")
-            .replace(/[òóôõö]/g, "o")
-            .replace(/[ùúûü]/g, "u")
-            .replace(/ç/g, "c")
-            .replace(/s\b/g, "") // Remove plural 's' at end of words
-            .replace(/\s+/g, " ")
-            .trim();
-        };
-
-        const targetNorm = normalize(target);
-        const invNorm = normalize(invName);
+        const targetNorm = normalizeText(target);
+        const invNorm = normalizeText(invName);
 
         // Special case for Eggs (Ovos)
         const isEgg = targetNorm.includes('ovo') || invNorm.includes('ovo');
@@ -169,8 +154,9 @@ export default function RegisterSale() {
     return inventory
       .filter(i => {
         if (i.status !== "in_stock") return false;
-        const invName = i.subtype.toLowerCase();
-        return invName.includes(target) || target.includes(invName);
+        const invName = normalizeText(i.subtype);
+        const targetNorm = normalizeText(target);
+        return invName.includes(targetNorm) || targetNorm.includes(invName);
       })
       .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime())
       .slice(0, 3);

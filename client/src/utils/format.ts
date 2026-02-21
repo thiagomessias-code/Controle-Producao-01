@@ -59,3 +59,16 @@ export const formatCNPJ = (cnpj: string): string => {
   }
   return cnpj;
 };
+
+export const normalizeText = (str: string): string => {
+  return str.toLowerCase()
+    .replace(/[àáâãä]/g, "a")
+    .replace(/[èéêë]/g, "e")
+    .replace(/[ìíîï]/g, "i")
+    .replace(/[òóôõö]/g, "o")
+    .replace(/[ùúûü]/g, "u")
+    .replace(/ç/g, "c")
+    .replace(/s\b/g, "") // Remove plural 's' at end of words
+    .replace(/\s+/g, " ")
+    .trim();
+};

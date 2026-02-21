@@ -29,8 +29,14 @@ export interface CreateSaleRequest {
   productType: string;
   product_variation_id?: string;
   userId?: string;
-  paymentMethod: "cash" | "check" | "transfer" | "other";
+  paymentMethod: "cash" | "payment_app" | "transfer" | "other" | "check";
   notes?: string;
+  items?: {
+    produto_nome: string;
+    quantidade: number;
+    preco_unitario: number;
+    item_estoque_id: string | null;
+  }[];
 }
 
 export interface UpdateSaleRequest extends Partial<CreateSaleRequest> {
@@ -108,7 +114,7 @@ export const salesApi = {
       metodo_pagamento: data.paymentMethod,
       observacoes: `${data.notes || ''} [Galpao:${data.groupId}]`, // Store groupId in notes
       usuario_id: data.userId,
-      itens: [
+      itens: data.items || [
         {
           produto_nome: data.productType,
           quantidade: data.quantity,

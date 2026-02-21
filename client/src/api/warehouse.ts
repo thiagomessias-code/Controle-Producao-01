@@ -140,7 +140,9 @@ export const warehouseApi = {
                     ingredient.stock_type,
                     ingredient.raw_material_name,
                     totalIngredientQty,
-                    `${context} (insumo de ${subtype})`
+                    `${context} (insumo de ${subtype})`,
+                    [],
+                    skipMovement
                 );
                 originsUsed.push(...ingredientOrigins);
             }
@@ -182,17 +184,20 @@ export const warehouseApi = {
             const amountFromThisItem = Math.min(item.quantity, remainingToDeduct);
 
             // Register Exit Movement
-            await supabaseClient.post("/estoque/movimentacoes", {
-                item_id: item.id,
-                tipo: 'SAIDA',
-                quantidade: amountFromThisItem,
-                origem_tipo: context,
-                observacao: `Baixa Automática (FIFO) - ${context}`
-            });
+            if (!skipMovement) {
+                await supabaseClient.post("/estoque/movimentacoes", {
+                    item_id: item.id,
+                    tipo: 'SAIDA',
+                    quantidade: amountFromThisItem,
+                    origem_tipo: context,
+                    observacao: `Baixa Automática (FIFO) - ${context}`
+                });
+            }
 
             originsUsed.push({
                 ...item.origin,
-                quantity: amountFromThisItem
+                quantity: amountFromThisItem,
+                itemId: item.id
             });
 
             remainingToDeduct -= amountFromThisItem;

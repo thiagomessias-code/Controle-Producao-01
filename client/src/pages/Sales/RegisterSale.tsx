@@ -246,6 +246,7 @@ export default function RegisterSale() {
 
       let originTag = "";
       const isDerivative = selectedProduct.controla_estoque === false;
+      let itemsPayload: any[] | undefined = undefined;
 
       if (isEgg || isMeat || isLive || isDerivative) {
         let stockSubtype = selectedProduct.nome;
@@ -278,9 +279,24 @@ export default function RegisterSale() {
           stockSubtype,
           finalStockQty,
           "venda",
-          selectedProduct.ficha_tecnica
+          selectedProduct.ficha_tecnica,
+          true // CRITICAL: Skip movement here, let backend do it via /vendas
         );
-        console.log(`DEBUG RegisterSale: processSale complete. Deducted from ${origins.length} origins.`);
+        console.log(`DEBUG RegisterSale: FIFO calculation complete. Found ${origins.length} batches.`);
+
+        // Build items array for backend /vendas call
+        // If we have origins (FIFO), we split the sale items to match batches
+        // BUT we must distribute the SALE quantity (qty) proportionately 
+        // Or send the STOCK quantity (finalStockQty) if the backend supports it.
+        // Given the database holds 'quantidade' in the item, 
+        // and we want to deduct the correct number of eggs:
+
+        itemsPayload = origins.map(o => ({
+          produto_nome: selectedProduct.nome,
+          quantidade: o.quantity, // Send the amount of EGGS (stock units)
+          preco_unitario: (selectedVariation.price * qty) / finalStockQty, // Adjust unit price to match stock units
+          item_estoque_id: o.itemId
+        }));
 
         const aviaryIds = new Set(origins.map(o => {
           const group = groups.find(g => String(g.id) === String(o.groupId));
@@ -310,6 +326,7 @@ export default function RegisterSale() {
         userId: user?.id,
         paymentMethod: formData.paymentMethod,
         notes: `Variação: ${selectedVariation.name}. ${formData.notes}${originTag}`,
+        items: itemsPayload
       });
 
       setLocation("/sales");

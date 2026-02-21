@@ -35,10 +35,12 @@ export function useWarehouse() {
         }
     };
 
-    const processSale = async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[]) => {
+    const processSale = async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[], skipMovement: boolean = false) => {
         try {
-            const results = await warehouseApi.processSale(type, subtype, quantity, context, fichaTecnica);
-            await fetchInventory(); // Refresh to show updated quantities
+            const results = await warehouseApi.processSale(type, subtype, quantity, context, fichaTecnica, skipMovement);
+            if (!skipMovement) {
+                await fetchInventory(); // Only refresh if we actually changed something in movements
+            }
             return results;
         } catch (err) {
             setError("Erro ao processar venda no estoque");

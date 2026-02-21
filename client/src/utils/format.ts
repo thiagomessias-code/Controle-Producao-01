@@ -77,6 +77,18 @@ export const matchWords = (target: string, inv: string): boolean => {
   if (target === inv) return true;
   if (target.startsWith(inv) || inv.startsWith(target)) return true;
 
+  // Special case for eggs: if both contain 'ovo', check for specific conflicts
+  if (target.includes('ovo') && inv.includes('ovo')) {
+    const isFertileTarget = target.includes('fertil') || target.includes('galado');
+    const isFertileInv = inv.includes('fertil') || inv.includes('galado');
+
+    // If one is fertile and other isn't, they don't match
+    if (isFertileTarget !== isFertileInv) return false;
+
+    // Otherwise, allow matching (Ovo Tia matches Ovo Cru)
+    return true;
+  }
+
   // Fuzzy word check
   const tWords = target.split(' ').filter(w => w.length > 2);
   const significantWords = tWords.filter(w => w !== 'ovo');

@@ -29,14 +29,16 @@ export interface InventoryHistory {
 
 // Helper to map backend format to frontend
 const mapCategoryToFrontend = (category: string, name: string): "egg" | "meat" | "chick" => {
-    switch (category) {
-        case "ovo": return "egg";
-        case "carne": return "meat";
-        case "insumo":
-            if (name.toLowerCase().includes("pinto")) return "chick";
-            return "chick";
-        default: return "chick";
+    const cat = (category || "").toLowerCase();
+    const nm = (name || "").toLowerCase();
+
+    if (cat === "ovo" || nm.includes("ovo")) return "egg";
+    if (cat === "carne" || nm.includes("carne") || nm.includes("abatida")) return "meat";
+    if (cat === "insumo") {
+        if (nm.includes("pinto")) return "chick";
+        return "chick";
     }
+    return "chick";
 };
 
 const mapFromBackend = (item: any): InventoryItem => ({
@@ -167,7 +169,10 @@ export const warehouseApi = {
                 // Match using our multi-word logic
                 const match = matchWords(targetNorm, invNorm);
 
-                return typeMatch && match && i.quantity > 0;
+                // Relaxed type match: If name matches and target IS an egg, we prioritize the name match
+                const isImplicitTypeMatch = (type === 'egg' && invNorm.includes('ovo'));
+
+                return (typeMatch || isImplicitTypeMatch) && match && i.quantity > 0;
             })
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
 

@@ -122,17 +122,22 @@ export default function RegisterSale() {
         const targetNorm = normalizeText(target);
         const invNorm = normalizeText(invName);
 
-        // Special case for Eggs (Ovos)
-        const isEgg = targetNorm.includes('ovo') || invNorm.includes('ovo');
-        if (isEgg) {
-          // If product is "Ovos" matching "Ovo Cru", "Ovo Fertil", etc.
-          if (targetNorm.includes('ovo') && invNorm.includes('ovo')) return true;
+        // STRICTER Egg matching: 
+        // Only group if target is generic "Ovo" or "Ovos".
+        // If target is "Ovo Cru", it should NOT match "Ovo Fertil".
+        const isGenericTarget = targetNorm === 'ovo' || targetNorm === 'ovos';
+
+        if (isGenericTarget) {
+          return invNorm.includes('ovo');
         }
 
-        const match = invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
+        // Specific match: Either exactly the same or a very close prefix/suffix match
+        const match = invNorm === targetNorm ||
+          invNorm.startsWith(targetNorm) ||
+          targetNorm.startsWith(invNorm);
 
         if (match) {
-          console.log(`DEBUG Stock Match: Found ${i.quantity} of ${i.subtype} for product ${target}`);
+          console.log(`DEBUG Stock Match: Found ${i.quantity} of "${i.subtype}" for product "${target}"`);
         }
 
         return match;
@@ -212,7 +217,7 @@ export default function RegisterSale() {
       return;
     }
 
-    const available = getAvailableStock(selectedProduct.nome);
+    const available = getAvailableStock(selectedProduct.nome, selectedProduct.tipo === 'ovo' ? 'egg' : (selectedProduct.tipo === 'carne' ? 'meat' : undefined));
     if (available < qty) {
       const msg = selectedProduct.controla_estoque === false
         ? `Insumos insuficientes para produzir! Disponível: ${available}. Solicitado: ${qty}.`
@@ -258,9 +263,9 @@ export default function RegisterSale() {
         // If ficha_tecnica is [{ quantity: 30 }], it means 1 product = 30 eggs.
 
         // Let's assume the user's "Ovos" product has ficha_tecnica = 1.
-        // Then 1 tray = 30 eggs.
-
+        // Then 1 tray = 30        
         const finalStockQty = qty * multiplier;
+        console.log(`DEBUG RegisterSale: Processing sale for ${stockSubtype}. Qty: ${qty}, Multiplier: ${multiplier}, Final Stock Qty: ${finalStockQty}`);
 
         const origins = await processSale(
           stockType,
@@ -269,6 +274,7 @@ export default function RegisterSale() {
           "venda",
           selectedProduct.ficha_tecnica
         );
+        console.log(`DEBUG RegisterSale: processSale complete. Deducted from ${origins.length} origins.`);
 
         const aviaryIds = new Set(origins.map(o => {
           const group = groups.find(g => String(g.id) === String(o.groupId));

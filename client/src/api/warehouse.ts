@@ -156,11 +156,20 @@ export const warehouseApi = {
                 const targetNorm = normalizeText(subtype);
                 const invNorm = normalizeText(i.subtype);
 
-                // For eggs, allow generic matches
-                const isEggMatch = (targetNorm.includes('ovo') && invNorm.includes('ovo'));
-                const isFuzzyMatch = invNorm.includes(targetNorm) || targetNorm.includes(invNorm);
+                // STRICTER Egg matching: 
+                // Only group if target is generic "Ovo" or "Ovos".
+                const isGenericTarget = targetNorm === 'ovo' || targetNorm === 'ovos';
 
-                return typeMatch && (isEggMatch || isFuzzyMatch) && i.quantity > 0;
+                if (isGenericTarget && type === 'egg') {
+                    return invNorm.includes('ovo') && i.quantity > 0;
+                }
+
+                // Specific match: Either exactly the same or a very close prefix/suffix match
+                const match = invNorm === targetNorm ||
+                    invNorm.startsWith(targetNorm) ||
+                    targetNorm.startsWith(invNorm);
+
+                return typeMatch && match && i.quantity > 0;
             })
             .sort((a, b) => new Date(a.origin.date).getTime() - new Date(b.origin.date).getTime());
 

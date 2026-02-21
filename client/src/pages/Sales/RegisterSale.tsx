@@ -9,7 +9,7 @@ import { useGroups } from "@/hooks/useGroups";
 import { useWarehouse } from "@/hooks/useWarehouse";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate, formatDateTime, getLocalISODate } from "@/utils/date";
-import { formatCurrency, normalizeText } from "@/utils/format";
+import { formatCurrency, normalizeText, matchWords } from "@/utils/format";
 import { supabase } from "@/api/supabaseClient";
 import { aviariesApi } from "@/api/aviaries";
 import { toast } from "sonner";
@@ -60,6 +60,7 @@ export default function RegisterSale() {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedVariation, setSelectedVariation] = useState<ProductVariation | null>(null);
 
@@ -122,27 +123,31 @@ export default function RegisterSale() {
         const targetNorm = normalizeText(target);
         const invNorm = normalizeText(invName);
 
-        // STRICTER Egg matching: 
-        // Only group if target is generic "Ovo" or "Ovos".
-        // If target is "Ovo Cru", it should NOT match "Ovo Fertil".
-        const isGenericTarget = targetNorm === 'ovo' || targetNorm === 'ovos';
+        // STRICT Egg matching:
+        // 1. Generic 'ovo' only matches if target is exactly 'ovo'
+        // 2. Specific targets like 'ovo cru' must match 'ovo cru' strictly.
+        if (typeHint === 'egg' || targetNorm.includes('ovo')) {
+          if (targetNorm === 'ovo' || targetNorm === 'ovos') {
+            return invNorm.includes('ovo');
+          }
+          // Strict substring match: 'ovo tia' should NOT match 'ovo cru'
+          // We split by spaces and check if all words of target are in inv OR vice versa
+          const targetWords = targetNorm.split(' ').filter(w => w !== 'ovo' && w.length > 2);
+          const invWords = invNorm.split(' ').filter(w => w !== 'ovo' && w.length > 2);
 
-        if (isGenericTarget) {
-          return invNorm.includes('ovo');
+          if (targetWords.length > 0) {
+            // If we have specific words like 'tia', check if they match
+            return matchWords(targetNorm, invNorm);
+          }
         }
 
-        // Specific match: Either exactly the same or a very close prefix/suffix match
-        const match = invNorm === targetNorm ||
-          invNorm.startsWith(targetNorm) ||
-          targetNorm.startsWith(invNorm);
-
-        if (match) {
-          console.log(`DEBUG Stock Match: Found ${i.quantity} of "${i.subtype}" for product "${target}"`);
-        }
-
-        return match;
+        return matchWords(targetNorm, invNorm);
       })
       .reduce((acc, i) => acc + i.quantity, 0);
+  };
+
+  const matchWordsLocal = (target: string, inv: string): boolean => {
+    return matchWords(target, inv);
   };
 
   const getVariationMultiplier = (variation: ProductVariation | null): number => {
@@ -230,7 +235,8 @@ export default function RegisterSale() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedProduct || !selectedVariation) return;
+    if (isSubmitting || !selectedProduct || !selectedVariation) return;
+    setIsSubmitting(true);
 
     try {
       const qty = parseInt(formData.quantity);
@@ -311,6 +317,8 @@ export default function RegisterSale() {
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Erro ao registrar venda");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -578,10 +586,10 @@ export default function RegisterSale() {
                 <div className="pt-4">
                   <Button
                     onClick={handleSubmit}
-                    isLoading={isCreating}
+                    isLoading={isSubmitting}
                     className="w-full h-20 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl rounded-[2.5rem] shadow-2xl shadow-emerald-100 flex items-center justify-center gap-4 transition-all group"
                   >
-                    Confirmar e Finalizar Venda <CheckCircle2 size={28} className="group-hover:scale-125 transition-transform" />
+                    {isSubmitting ? "Processando..." : "Confirmar e Finalizar Venda"} <CheckCircle2 size={28} className="group-hover:scale-125 transition-transform" />
                   </Button>
                 </div>
               </CardContent>

@@ -72,3 +72,17 @@ export const normalizeText = (str: string): string => {
     .replace(/\s+/g, " ")
     .trim();
 };
+
+export const matchWords = (target: string, inv: string): boolean => {
+  if (target === inv) return true;
+  if (target.startsWith(inv) || inv.startsWith(target)) return true;
+
+  // Fuzzy word check
+  const tWords = target.split(' ').filter(w => w.length > 2);
+  const significantWords = tWords.filter(w => w !== 'ovo');
+  if (significantWords.length > 0) {
+    return significantWords.some(w => inv.includes(w));
+  }
+
+  return target.includes(inv) || inv.includes(target);
+};

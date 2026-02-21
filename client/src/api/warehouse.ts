@@ -1,5 +1,5 @@
 import { supabaseClient, supabase } from "./supabaseClient";
-import { normalizeText } from "../utils/format";
+import { normalizeText, matchWords } from "../utils/format";
 
 // ... (rest of imports and interfaces)
 
@@ -156,18 +156,14 @@ export const warehouseApi = {
                 const targetNorm = normalizeText(subtype);
                 const invNorm = normalizeText(i.subtype);
 
-                // STRICTER Egg matching: 
-                // Only group if target is generic "Ovo" or "Ovos".
-                const isGenericTarget = targetNorm === 'ovo' || targetNorm === 'ovos';
-
-                if (isGenericTarget && type === 'egg') {
+                // STRICT Egg matching:
+                // 1. Generic 'ovo' only matches if target is exactly 'ovo'
+                if ((type === 'egg' || targetNorm.includes('ovo')) && (targetNorm === 'ovo' || targetNorm === 'ovos')) {
                     return invNorm.includes('ovo') && i.quantity > 0;
                 }
 
-                // Specific match: Either exactly the same or a very close prefix/suffix match
-                const match = invNorm === targetNorm ||
-                    invNorm.startsWith(targetNorm) ||
-                    targetNorm.startsWith(invNorm);
+                // Match using our multi-word logic
+                const match = matchWords(targetNorm, invNorm);
 
                 return typeMatch && match && i.quantity > 0;
             })

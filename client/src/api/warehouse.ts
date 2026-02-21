@@ -129,7 +129,7 @@ export const warehouseApi = {
         return updatedInventory.find(i => i.id === itemId)!;
     },
 
-    processSale: async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[]): Promise<any[]> => {
+    processSale: async (type: "egg" | "meat" | "chick", subtype: string, quantity: number, context: string = "venda", fichaTecnica?: any[], skipMovement: boolean = false): Promise<any[]> => {
         const originsUsed: any[] = [];
 
         // If it's a derivative product (has fichaTecnica), we deduct each ingredient
